@@ -1,17 +1,55 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #0b1020;
-  color: #e5e7eb;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 98%;
+  --card: 222 41% 10%;
+  --card-foreground: 210 40% 98%;
+  --primary: 188 94% 55%;
+  --primary-foreground: 222 47% 7%;
+  --secondary: 220 17% 18%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 220 18% 16%;
+  --muted-foreground: 215 20% 69%;
+  --accent: 267 70% 60%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 76% 36%;
+  --success-foreground: 210 40% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 15 20% 96%;
+  --border: 220 18% 16%;
+  --input: 220 18% 16%;
+  --ring: 188 94% 55%;
+  --radius: 1rem;
 }
 
-body {
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground;
+    background-image: radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 25%),
+      radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.14), transparent 20%);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  a {
+    @apply transition-colors;
+  }
 }
 
-main {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
+@layer components {
+  .panel-glow {
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.12), 0 18px 38px rgba(15, 23, 42, 0.4);
+  }
 }
