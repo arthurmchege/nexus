@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nexus
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+      - name: Run backend lint
+        run: |
+          cd backend && ruff check .
+          black --check .
+          isort --check-only .
+      - name: Run backend tests
+        env:
+          APP_ENV: test
+          POSTGRES_DB: nexus
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5433
+          REDIS_HOST: localhost
+          REDIS_PORT: 6380
+          REDIS_DB: 0
+        run: |
+          cd backend && pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Run frontend typecheck
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --watch=false

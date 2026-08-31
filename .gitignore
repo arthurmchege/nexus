@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+
+# FastAPI / Alembic
+*.sqlite3
+*.db
+
+# Node
+node_modules/
+.next/
+out/
+coverage/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+*.tsbuildinfo
