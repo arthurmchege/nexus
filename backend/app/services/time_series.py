@@ -16,7 +16,13 @@ def partition_bucket_for(observed_at: datetime, *, bucket: str = "month") -> str
 def build_latency_summary(results: Iterable[dict[str, object]]) -> dict[str, float | int]:
     values = [float(result.get("latency_ms", 0)) for result in results if isinstance(result, dict)]
     if not values:
-        return {"count": 0, "avg_latency_ms": 0.0, "p50_latency_ms": 0.0, "p95_latency_ms": 0.0, "p99_latency_ms": 0.0}
+        return {
+            "count": 0,
+            "avg_latency_ms": 0.0,
+            "p50_latency_ms": 0.0,
+            "p95_latency_ms": 0.0,
+            "p99_latency_ms": 0.0,
+        }
 
     ordered = sorted(values)
     count = len(ordered)

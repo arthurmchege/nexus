@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -8,7 +8,11 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.models.monitoring import MonitorEndpoint, MonitorResult
-from app.services.monitoring_queries import compute_monitor_stats, compute_rollups, explain_monitor_result_query
+from app.services.monitoring_queries import (
+    compute_monitor_stats,
+    compute_rollups,
+    explain_monitor_result_query,
+)
 from app.services.time_series import build_latency_summary, partition_bucket_for
 
 

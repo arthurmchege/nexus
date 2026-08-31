@@ -40,7 +40,9 @@ def explain_monitor_result_query(
     )
     if end is not None:
         statement = statement.where(MonitorResult.observed_at < end)
-    plan = db.execute(text(f"EXPLAIN QUERY PLAN {statement.compile(compile_kwargs={'literal_binds': True})}"))
+    plan = db.execute(
+        text(f"EXPLAIN QUERY PLAN {statement.compile(compile_kwargs={'literal_binds': True})}")
+    )
     return list(plan)
 
 
@@ -89,7 +91,12 @@ def compute_rollups(
 ) -> list[dict[str, float | int | str]]:
     results = fetch_monitor_results(db, monitor_id=monitor_id, start=start, end=end)
     buckets: dict[str, dict[str, float | int]] = defaultdict(
-        lambda: {"total_checks": 0, "successful_checks": 0, "failed_checks": 0, "latency_total": 0.0}
+        lambda: {
+            "total_checks": 0,
+            "successful_checks": 0,
+            "failed_checks": 0,
+            "latency_total": 0.0,
+        }
     )
 
     for result in results:
@@ -100,7 +107,9 @@ def compute_rollups(
             bucket_data["successful_checks"] = int(bucket_data["successful_checks"]) + 1
         else:
             bucket_data["failed_checks"] = int(bucket_data["failed_checks"]) + 1
-        bucket_data["latency_total"] = float(bucket_data["latency_total"]) + float(result.latency_ms)
+        bucket_data["latency_total"] = float(bucket_data["latency_total"]) + float(
+            result.latency_ms
+        )
 
     rollups: list[dict[str, float | int | str]] = []
     for bucket_key in sorted(buckets):
@@ -115,7 +124,9 @@ def compute_rollups(
                 "total_checks": total_checks,
                 "successful_checks": successful_checks,
                 "failed_checks": failed_checks,
-                "uptime_percentage": round((successful_checks / total_checks) * 100, 2) if total_checks else 0.0,
+                "uptime_percentage": round((successful_checks / total_checks) * 100, 2)
+                if total_checks
+                else 0.0,
                 "avg_latency_ms": round(avg_latency_ms, 2),
             }
         )

@@ -74,6 +74,25 @@ class MonitorEndpointOut(MonitorEndpointBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    status: str = "unknown"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MonitorStatsOut(BaseModel):
+    monitor_id: int
+    window_start: datetime
+    window_end: datetime
+    total_checks: int
+    successful_checks: int
+    failed_checks: int
+    uptime_percentage: float
+    avg_latency_ms: float
+    p50_latency_ms: float
+    p95_latency_ms: float
+    p99_latency_ms: float
+    hourly_rollups: list[dict[str, int | float | str]] = Field(default_factory=list)
+    daily_rollups: list[dict[str, int | float | str]] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -245,3 +245,141 @@ def test_list_accepts_filters(api_client: tuple[TestClient, sessionmaker[Session
     assert inactive_response.status_code == 200
     assert len(active_response.json()) == 1
     assert len(inactive_response.json()) == 1
+
+
+def test_monitor_stats_endpoint_and_validation(
+    api_client: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, session_factory = api_client
+    created = client.post(
+        "/api/v1/monitors",
+        json={
+            "url": "http://127.0.0.1:9001/health",
+            "http_method": "GET",
+            "expected_status_code": 200,
+            "interval_seconds": 30,
+            "timeout_seconds": 5,
+            "active": True,
+        },
+    )
+    monitor_id = created.json()["id"]
+
+    with session_factory() as session:
+        session.add_all(
+            [
+                __import__("app.models.monitoring", fromlist=["MonitorResult"]).MonitorResult(
+                    endpoint_id=monitor_id,
+                    observed_at=__import__("datetime", fromlist=["datetime"]).datetime(
+                        2026, 8, 31, 0, 0, 0
+                    ),
+                    partition_bucket="2026-08",
+                    http_status=200,
+                    latency_ms=200,
+                    response_size=256,
+                    success=True,
+                ),
+                __import__("app.models.monitoring", fromlist=["MonitorResult"]).MonitorResult(
+                    endpoint_id=monitor_id,
+                    observed_at=__import__("datetime", fromlist=["datetime"]).datetime(
+                        2026, 8, 31, 1, 0, 0
+                    ),
+                    partition_bucket="2026-08",
+                    http_status=200,
+                    latency_ms=400,
+                    response_size=256,
+                    success=True,
+                ),
+                __import__("app.models.monitoring", fromlist=["MonitorResult"]).MonitorResult(
+                    endpoint_id=monitor_id,
+                    observed_at=__import__("datetime", fromlist=["datetime"]).datetime(
+                        2026, 9, 1, 0, 0, 0
+                    ),
+                    partition_bucket="2026-09",
+                    http_status=500,
+                    latency_ms=1000,
+                    response_size=128,
+                    success=False,
+                ),
+            ]
+        )
+        session.commit()
+
+    metrics = client.get(
+        f"/api/v1/monitors/{monitor_id}/stats?start=2026-08-31T00:00:00&end=2026-09-02T00:00:00"
+    )
+    assert metrics.status_code == 200
+    payload = metrics.json()
+    assert payload["total_checks"] == 3
+    assert payload["successful_checks"] == 2
+    assert payload["failed_checks"] == 1
+    assert payload["uptime_percentage"] == 66.67
+    assert payload["daily_rollups"]
+
+    invalid_window = client.get(f"/api/v1/monitors/{monitor_id}/stats?window_days=400")
+    assert invalid_window.status_code == 422
+
+    reversed_window = client.get(
+        f"/api/v1/monitors/{monitor_id}/stats?start=2026-09-02T00:00:00&end=2026-09-01T00:00:00"
+    )
+    assert reversed_window.status_code == 400
+
+
+def test_monitor_history_pagination_and_list_query_budget(
+    api_client: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, session_factory = api_client
+    monitor_result = client.post(
+        "/api/v1/monitors",
+        json={
+            "url": "http://127.0.0.1:9002/health",
+            "http_method": "GET",
+            "expected_status_code": 200,
+            "interval_seconds": 30,
+            "timeout_seconds": 5,
+            "active": True,
+        },
+    )
+    monitor_id = monitor_result.json()["id"]
+
+    with session_factory() as session:
+        session.add_all(
+            [
+                __import__("app.models.monitoring", fromlist=["MonitorResult"]).MonitorResult(
+                    endpoint_id=monitor_id,
+                    observed_at=__import__("datetime", fromlist=["datetime"]).datetime(
+                        2026, 9, day, 0, 0, 0
+                    ),
+                    partition_bucket="2026-09",
+                    http_status=200,
+                    latency_ms=100 + day,
+                    response_size=128,
+                    success=(day % 2 == 0),
+                )
+                for day in range(1, 6)
+            ]
+        )
+        session.commit()
+
+    page_one = client.get(f"/api/v1/monitors/{monitor_id}/history?skip=0&limit=2")
+    page_two = client.get(f"/api/v1/monitors/{monitor_id}/history?skip=2&limit=2")
+    ids = [item["id"] for item in page_one.json()] + [item["id"] for item in page_two.json()]
+    assert len(ids) == len(set(ids)) == 4
+
+    engine = session_factory.kw["bind"]
+    captured: list[str] = []
+
+    def _listen(conn, cursor, statement, parameters, context, executemany):
+        captured.append(str(statement))
+
+    from sqlalchemy import event
+
+    event.listen(engine, "before_cursor_execute", _listen)
+    try:
+        list_response = client.get("/api/v1/monitors?limit=5")
+    finally:
+        event.remove(engine, "before_cursor_execute", _listen)
+
+    assert list_response.status_code == 200
+    assert len(list_response.json()) <= 5
+    select_count = sum(1 for statement in captured if "SELECT" in statement.upper())
+    assert select_count <= 10
