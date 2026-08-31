@@ -40,9 +40,7 @@ def test_monitor_endpoint_create(db_session: Session) -> None:
     db_session.commit()
 
     stored = db_session.scalar(
-        select(MonitorEndpoint).where(
-            MonitorEndpoint.url == "https://example.com/health"
-        )
+        select(MonitorEndpoint).where(MonitorEndpoint.url == "https://example.com/health")
     )
     assert stored is not None
     assert stored.http_method == "GET"

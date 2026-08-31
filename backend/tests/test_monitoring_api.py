@@ -63,9 +63,7 @@ def test_create_monitor(api_client: tuple[TestClient, sessionmaker[Session]]) ->
     assert data["active"] is True
 
 
-def test_list_and_retrieve_monitor(
-    api_client: tuple[TestClient, sessionmaker[Session]]
-) -> None:
+def test_list_and_retrieve_monitor(api_client: tuple[TestClient, sessionmaker[Session]]) -> None:
     client, _ = api_client
     payload = {
         "url": "http://127.0.0.1:8001/health",
@@ -116,7 +114,7 @@ def test_update_monitor(api_client: tuple[TestClient, sessionmaker[Session]]) ->
 
 
 def test_activate_and_deactivate_monitor(
-    api_client: tuple[TestClient, sessionmaker[Session]]
+    api_client: tuple[TestClient, sessionmaker[Session]],
 ) -> None:
     client, _ = api_client
     created = client.post(
@@ -197,9 +195,7 @@ def test_monitor_history(api_client: tuple[TestClient, sessionmaker[Session]]) -
     assert data[0]["success"] is True
 
 
-def test_invalid_input_returns_422(
-    api_client: tuple[TestClient, sessionmaker[Session]]
-) -> None:
+def test_invalid_input_returns_422(api_client: tuple[TestClient, sessionmaker[Session]]) -> None:
     client, _ = api_client
     payload = {
         "url": "ftp://example.com",
@@ -211,17 +207,13 @@ def test_invalid_input_returns_422(
     assert response.status_code == 422
 
 
-def test_missing_monitor_returns_404(
-    api_client: tuple[TestClient, sessionmaker[Session]]
-) -> None:
+def test_missing_monitor_returns_404(api_client: tuple[TestClient, sessionmaker[Session]]) -> None:
     client, _ = api_client
     response = client.get("/api/v1/monitors/999999")
     assert response.status_code == 404
 
 
-def test_list_accepts_filters(
-    api_client: tuple[TestClient, sessionmaker[Session]]
-) -> None:
+def test_list_accepts_filters(api_client: tuple[TestClient, sessionmaker[Session]]) -> None:
     client, _ = api_client
     client.post(
         "/api/v1/monitors",

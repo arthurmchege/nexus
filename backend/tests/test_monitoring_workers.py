@@ -145,12 +145,8 @@ async def test_dns_failure() -> None:
 
 @pytest.mark.asyncio
 async def test_retry_behavior() -> None:
-    worker = MonitoringWorker(
-        max_concurrency=1, max_retries=1, retry_backoff_seconds=0.05
-    )
-    with mock_http_server(
-        status_code=200, body="recovered", fail_first_request=True
-    ) as target_url:
+    worker = MonitoringWorker(max_concurrency=1, max_retries=1, retry_backoff_seconds=0.05)
+    with mock_http_server(status_code=200, body="recovered", fail_first_request=True) as target_url:
         job = MonitorJob(
             endpoint_id=6,
             url=target_url,
@@ -196,9 +192,7 @@ async def test_concurrent_monitoring_behavior() -> None:
         mock_http_server(status_code=200, body="two") as second_url,
         mock_http_server(status_code=200, body="three") as third_url,
     ):
-        worker = MonitoringWorker(
-            max_concurrency=2, max_retries=0, retry_backoff_seconds=0.01
-        )
+        worker = MonitoringWorker(max_concurrency=2, max_retries=0, retry_backoff_seconds=0.01)
         await worker.enqueue(
             MonitorJob(
                 endpoint_id=8,

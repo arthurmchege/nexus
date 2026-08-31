@@ -5,6 +5,7 @@ import ipaddress
 import socket
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import urlparse
 
 import httpx
@@ -32,6 +33,10 @@ class MonitorJob:
     max_retries: int = 2
     retry_backoff_seconds: float = 0.5
     allow_localhost: bool = False
+    job_id: str | None = None
+    scheduled_for: datetime | None = None
+    attempt_number: int = 0
+    idempotency_key: str | None = None
 
 
 def validate_monitor_url(raw_url: str, *, allow_localhost: bool = False) -> str:
@@ -65,9 +70,7 @@ def validate_monitor_url(raw_url: str, *, allow_localhost: bool = False) -> str:
         raise ValueError(f"DNS resolution failed for host: {hostname}") from exc
 
     for address in ip_addresses:
-        if _is_dangerous_ip(address) and not (
-            localhost_allowed and address.is_loopback
-        ):
+        if _is_dangerous_ip(address) and not (localhost_allowed and address.is_loopback):
             raise ValueError(f"Blocked internal or unroutable target: {hostname}")
 
     return raw_url
@@ -121,9 +124,7 @@ async def perform_monitor_check(job: MonitorJob) -> MonitoringCheckResult:
 
     started_at = time.perf_counter()
     try:
-        async with httpx.AsyncClient(
-            follow_redirects=False, timeout=job.timeout_seconds
-        ) as client:
+        async with httpx.AsyncClient(follow_redirects=False, timeout=job.timeout_seconds) as client:
             response = await client.request(job.method, job.url)
             latency_ms = int((time.perf_counter() - started_at) * 1000)
             response_size = len(response.content)

@@ -21,9 +21,7 @@ router = APIRouter(prefix="/monitors", tags=["monitors"])
 def get_monitor_or_404(db: Session, monitor_id: int) -> MonitorEndpoint:
     endpoint = db.get(MonitorEndpoint, monitor_id)
     if endpoint is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found.")
     return endpoint
 
 
@@ -56,9 +54,7 @@ def list_monitors(
     statement = select(MonitorEndpoint)
     if active is not None:
         statement = statement.where(MonitorEndpoint.active.is_(active))
-    statement = (
-        statement.order_by(MonitorEndpoint.created_at.desc()).offset(skip).limit(limit)
-    )
+    statement = statement.order_by(MonitorEndpoint.created_at.desc()).offset(skip).limit(limit)
     return list(db.scalars(statement).all())
 
 
@@ -109,9 +105,7 @@ def deactivate_monitor(
     return endpoint
 
 
-@router.delete(
-    "/{monitor_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response
-)
+@router.delete("/{monitor_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 def delete_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
