@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import tempfile
+import threading
 from datetime import datetime, timedelta
 
 import pytest
@@ -111,6 +113,58 @@ def test_scheduler_claims_due_monitors_in_batches(db_session: sessionmaker[Sessi
     assert len(jobs) == 2
     assert queue.queue_depth() == 2
     assert {job.monitor_id for job in jobs} == {3, 4}
+
+
+def test_two_schedulers_do_not_claim_the_same_monitor_concurrently() -> None:
+    now = datetime.utcnow()
+    with tempfile.NamedTemporaryFile(suffix=".sqlite3") as temp_db:
+        engine = create_engine(
+            f"sqlite:///{temp_db.name}",
+            connect_args={"check_same_thread": False},
+        )
+        Base.metadata.create_all(bind=engine)
+        session_factory = sessionmaker(
+            bind=engine,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False,
+            class_=Session,
+        )
+
+        with session_factory() as session:
+            session.add_all(
+                [
+                    MonitorEndpoint(
+                        url=f"http://example.com/concurrency/{index}",
+                        http_method="GET",
+                        expected_status_code=200,
+                        interval_seconds=30,
+                        timeout_seconds=5,
+                        active=True,
+                        next_check_at=now - timedelta(minutes=1),
+                    )
+                    for index in range(1, 11)
+                ]
+            )
+            session.commit()
+
+        barrier = threading.Barrier(2)
+        results: list[list[object]] = []
+
+        def claim_once() -> None:
+            barrier.wait()
+            scheduler = MonitorScheduler(session_factory=session_factory, queue=None, batch_size=10)
+            results.append(scheduler.claim_due_monitors(now=now))
+
+        first = threading.Thread(target=claim_once)
+        second = threading.Thread(target=claim_once)
+        first.start()
+        second.start()
+        first.join()
+        second.join()
+
+        claimed_ids = [job.monitor_id for jobs in results for job in jobs]
+        assert len(claimed_ids) == len(set(claimed_ids)) == 10
 
 
 def test_monitoring_queue_round_trip() -> None:

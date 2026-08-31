@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.models.monitoring import MonitorEndpoint
@@ -62,22 +63,39 @@ class MonitorScheduler:
         current_time = now or datetime.utcnow()
         batch_limit = min(limit or self.batch_size, self.batch_size)
         claimed: list[ScheduledMonitorJob] = []
+        claim_token = f"scheduler:{uuid.uuid4()}"
 
         with self.session_factory() as session:
-            statement = (
-                select(MonitorEndpoint)
-                .where(MonitorEndpoint.active.is_(True))
-                .where(MonitorEndpoint.next_check_at <= current_time)
-                .order_by(MonitorEndpoint.next_check_at.asc())
-                .limit(batch_limit)
-            )
-            try:
-                endpoints = list(session.scalars(statement).all())
-            except Exception:
-                endpoints = list(session.scalars(select(MonitorEndpoint)).all())
+            bind = session.bind
+            dialect_name = bind.dialect.name if bind is not None else "sqlite"
+
+            if dialect_name == "postgresql":
+                statement = (
+                    select(MonitorEndpoint)
+                    .where(MonitorEndpoint.active.is_(True))
+                    .where(MonitorEndpoint.next_check_at <= current_time)
+                    .where(MonitorEndpoint.claimed_at.is_(None))
+                    .order_by(MonitorEndpoint.next_check_at.asc())
+                    .limit(batch_limit)
+                    .with_for_update(skip_locked=True)
+                )
+            else:
+                statement = (
+                    select(MonitorEndpoint)
+                    .where(MonitorEndpoint.active.is_(True))
+                    .where(MonitorEndpoint.next_check_at <= current_time)
+                    .where(MonitorEndpoint.claimed_at.is_(None))
+                    .order_by(MonitorEndpoint.next_check_at.asc())
+                    .limit(batch_limit)
+                )
+                session.execute(text("BEGIN IMMEDIATE"))
+
+            endpoints = list(session.scalars(statement).all())
 
             for endpoint in endpoints:
                 endpoint.last_check_at = current_time
+                endpoint.claimed_at = current_time
+                endpoint.claimed_by = claim_token
                 endpoint.next_check_at = current_time + timedelta(seconds=endpoint.interval_seconds)
                 job = ScheduledMonitorJob(
                     monitor_id=endpoint.id,
