@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -76,6 +77,8 @@ class MonitorResult(Base):
         CheckConstraint("http_status <= 599", name="ck_monitor_result_status_max"),
         CheckConstraint("latency_ms >= 0", name="ck_monitor_result_latency_non_negative"),
         CheckConstraint("response_size >= 0", name="ck_monitor_result_response_size_non_negative"),
+        Index("ix_monitor_results_endpoint_observed_at", "endpoint_id", "observed_at"),
+        Index("ix_monitor_results_partition_endpoint_observed", "partition_bucket", "endpoint_id", "observed_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
