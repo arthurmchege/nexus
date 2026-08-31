@@ -35,6 +35,8 @@ class MonitorJob:
 
 
 def validate_monitor_url(raw_url: str, *, allow_localhost: bool = False) -> str:
+    localhost_allowed = allow_localhost
+
     parsed = urlparse(raw_url)
     if parsed.scheme not in {"http", "https"}:
         raise ValueError("Only http and https URLs are allowed.")
@@ -53,7 +55,7 @@ def validate_monitor_url(raw_url: str, *, allow_localhost: bool = False) -> str:
         "metadata",
     }
     if hostname in blocked_hosts or hostname.endswith(".localhost"):
-        if allow_localhost and hostname in {"localhost", "127.0.0.1", "::1"}:
+        if localhost_allowed and hostname in {"localhost", "127.0.0.1", "::1"}:
             return raw_url
         raise ValueError("Local and metadata targets are not allowed.")
 
@@ -63,7 +65,9 @@ def validate_monitor_url(raw_url: str, *, allow_localhost: bool = False) -> str:
         raise ValueError(f"DNS resolution failed for host: {hostname}") from exc
 
     for address in ip_addresses:
-        if _is_dangerous_ip(address) and not (allow_localhost and address.is_loopback):
+        if _is_dangerous_ip(address) and not (
+            localhost_allowed and address.is_loopback
+        ):
             raise ValueError(f"Blocked internal or unroutable target: {hostname}")
 
     return raw_url

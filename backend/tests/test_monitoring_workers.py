@@ -41,7 +41,10 @@ def mock_http_server(
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(body.encode("utf-8"))))
             self.end_headers()
-            self.wfile.write(body.encode("utf-8"))
+            try:
+                self.wfile.write(body.encode("utf-8"))
+            except BrokenPipeError:
+                return
 
         def log_message(self, format: str, *args: object) -> None:  # noqa: A003
             return
