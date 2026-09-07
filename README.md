@@ -47,6 +47,18 @@ The FastAPI read API queries monitor configuration and persisted monitoring
 results. The Next.js dashboard consumes that API to display system summaries,
 monitor inventories, history, and aggregate statistics.
 
+## Read API
+
+The current read-focused endpoints are:
+
+- `GET /api/v1/monitors` — paginated monitor inventory
+- `GET /api/v1/monitors/{id}` — monitor details
+- `GET /api/v1/monitors/{id}/history` — paginated check history
+- `GET /api/v1/monitors/{id}/stats` — uptime, latency, counts, and rollups
+- `GET /api/v1/monitors/summary` — system-wide monitor summary
+
+The API is currently open and unauthenticated for local development.
+
 Detailed decisions are documented in:
 
 - [`docs/architecture.md`](docs/architecture.md)
