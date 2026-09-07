@@ -1,4 +1,5 @@
 services:
+  # PostgreSQL stores monitor configuration and time-series check results.
   postgres:
     image: postgres:16-alpine
     container_name: nexus-postgres
@@ -16,6 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis provides the transient monitoring job queue and worker coordination.
   redis:
     image: redis:7-alpine
     container_name: nexus-redis
@@ -27,6 +29,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # FastAPI applies migrations and serves the backend API.
   backend:
     build:
       context: .
@@ -54,6 +57,7 @@ services:
         condition: service_healthy
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
+  # Next.js serves the operator dashboard and consumes the backend API.
   frontend:
     build:
       context: .
