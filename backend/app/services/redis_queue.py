@@ -30,6 +30,8 @@ class QueueMetrics:
 
 
 class MonitoringQueue:
+    """Bounded monitoring job queue with Redis and local fallback support."""
+
     def __init__(
         self,
         *,

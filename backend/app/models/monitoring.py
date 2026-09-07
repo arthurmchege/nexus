@@ -19,6 +19,8 @@ from app.db.base import Base
 
 
 class MonitorEndpoint(Base):
+    """Registered HTTP endpoint and its scheduling state."""
+
     __tablename__ = "monitor_endpoints"
     __table_args__ = (
         UniqueConstraint("url", "http_method", name="uq_monitor_endpoint_url_method"),
@@ -71,6 +73,8 @@ class MonitorEndpoint(Base):
 
 
 class MonitorResult(Base):
+    """Persisted outcome of one monitoring check."""
+
     __tablename__ = "monitor_results"
     __table_args__ = (
         CheckConstraint("http_status >= 100", name="ck_monitor_result_status_min"),
