@@ -3,13 +3,12 @@
 ## State evaluation
 
 Each monitor has a persisted health state and counters for consecutive
-failures and successes. The default policy is two consecutive failures to move
-from `UP` to `DOWN`, and two consecutive successes to recover from `DOWN` to
-`UP`. A single failed check is recorded but does not open an incident. The
-thresholds are stored per monitor so a noisy or latency-sensitive endpoint can
-be configured independently. `DEGRADED` is reserved for a future policy that
-combines partial failures or latency thresholds; the initial implementation
-uses `UP` and `DOWN` transitions without inventing an unmeasured signal.
+failures and successes. The default policy moves a monitor from `UP` to
+`DEGRADED` after one failed check, then to `DOWN` after two consecutive
+failures. Two consecutive successes recover either state to `UP`. A single
+failed check is therefore visible without opening an incident. The thresholds
+are stored per monitor so a noisy or latency-sensitive endpoint can be
+configured independently.
 
 ## Incidents and deliveries
 

@@ -69,7 +69,7 @@ def test_single_failure_does_not_open_incident(db_session: Session) -> None:
     )
     db_session.commit()
 
-    assert transition.current_state == "up"
+    assert transition.current_state == "degraded"
     assert transition.incident is None
     assert db_session.query(Incident).count() == 0
 

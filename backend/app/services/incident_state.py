@@ -40,7 +40,7 @@ def evaluate_monitor_state(
         endpoint.consecutive_successes += 1
         endpoint.consecutive_failures = 0
         if (
-            endpoint.health_state == "down"
+            endpoint.health_state in {"down", "degraded"}
             and endpoint.consecutive_successes >= endpoint.recovery_threshold
         ):
             endpoint.health_state = "up"
@@ -64,8 +64,10 @@ def evaluate_monitor_state(
     else:
         endpoint.consecutive_failures += 1
         endpoint.consecutive_successes = 0
+        if endpoint.health_state == "up":
+            endpoint.health_state = "degraded"
         if (
-            endpoint.health_state == "up"
+            endpoint.health_state == "degraded"
             and endpoint.consecutive_failures >= endpoint.failure_threshold
         ):
             endpoint.health_state = "down"
