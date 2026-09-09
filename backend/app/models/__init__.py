@@ -1,4 +1,4 @@
 from app.models.health_check import HealthCheck
-from app.models.monitoring import Incident, MonitorEndpoint, MonitorResult
+from app.models.monitoring import AlertDelivery, Incident, MonitorEndpoint, MonitorResult
 
-__all__ = ["HealthCheck", "Incident", "MonitorEndpoint", "MonitorResult"]
+__all__ = ["AlertDelivery", "HealthCheck", "Incident", "MonitorEndpoint", "MonitorResult"]

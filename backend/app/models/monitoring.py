@@ -43,6 +43,7 @@ class MonitorEndpoint(Base):
     consecutive_successes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     failure_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     recovery_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    notification_webhook_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     next_check_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
@@ -145,3 +146,34 @@ class Incident(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open", index=True)
 
     endpoint: Mapped[MonitorEndpoint] = relationship(back_populates="incidents")
+    deliveries: Mapped[list[AlertDelivery]] = relationship(
+        back_populates="incident",
+        cascade="all, delete-orphan",
+    )
+
+
+class AlertDelivery(Base):
+    """One idempotent notification attempt for an incident event."""
+
+    __tablename__ = "alert_deliveries"
+    __table_args__ = (
+        UniqueConstraint(
+            "incident_id",
+            "event",
+            "channel",
+            name="uq_alert_delivery_incident_event_channel",
+        ),
+        Index("ix_alert_deliveries_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False)
+    event: Mapped[str] = mapped_column(String(16), nullable=False)
+    channel: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+
+    incident: Mapped[Incident] = relationship(back_populates="deliveries")
