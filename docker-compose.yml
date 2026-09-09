@@ -57,6 +57,32 @@ services:
         condition: service_healthy
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
+  # The monitoring worker schedules due checks, consumes Redis jobs, and writes
+  # results through the incident and notification evaluation path.
+  monitoring-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: nexus-monitoring-worker
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-nexus}
+      POSTGRES_USER: ${POSTGRES_USER:-nexus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexus}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      APP_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "alembic upgrade head && python -m app.worker"
+
   # Next.js serves the operator dashboard and consumes the backend API.
   frontend:
     build:
