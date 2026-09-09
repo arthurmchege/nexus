@@ -185,6 +185,23 @@ def test_invalid_dangerous_urls(value: str) -> None:
         validate_monitor_url(value)
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        "http://10.0.0.1",
+        "http://127.0.0.1",
+        "http://169.254.1.1",
+    ],
+)
+def test_literal_private_ip_urls_are_rejected(value: str) -> None:
+    with pytest.raises(ValueError):
+        validate_monitor_url(value)
+
+
+def test_literal_public_ip_url_is_accepted() -> None:
+    assert validate_monitor_url("https://8.8.8.8") == "https://8.8.8.8"
+
+
 @pytest.mark.asyncio
 async def test_concurrent_monitoring_behavior() -> None:
     with (

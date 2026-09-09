@@ -100,7 +100,6 @@ def _is_dangerous_ip(address: ipaddress._BaseAddress) -> bool:
         or address.is_multicast
         or address.is_reserved
         or address.is_unspecified
-        or address.is_site_local
     ):
         return True
     return False
