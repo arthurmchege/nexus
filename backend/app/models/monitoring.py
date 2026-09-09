@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +38,11 @@ class MonitorEndpoint(Base):
     interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    health_state: Mapped[str] = mapped_column(String(16), nullable=False, default="up", index=True)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    consecutive_successes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failure_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    recovery_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     next_check_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
@@ -67,6 +73,10 @@ class MonitorEndpoint(Base):
     )
 
     results: Mapped[list[MonitorResult]] = relationship(
+        back_populates="endpoint",
+        cascade="all, delete-orphan",
+    )
+    incidents: Mapped[list[Incident]] = relationship(
         back_populates="endpoint",
         cascade="all, delete-orphan",
     )
@@ -108,3 +118,30 @@ class MonitorResult(Base):
     error_details: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     endpoint: Mapped[MonitorEndpoint] = relationship(back_populates="results")
+
+
+class Incident(Base):
+    """A deduplicated health episode for one monitor."""
+
+    __tablename__ = "incidents"
+    __table_args__ = (
+        Index(
+            "uq_incidents_open_monitor",
+            "monitor_id",
+            unique=True,
+            postgresql_where=text("status = 'open'"),
+            sqlite_where=text("status = 'open'"),
+        ),
+        Index("ix_incidents_status_opened_at", "status", "opened_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    monitor_id: Mapped[int] = mapped_column(
+        ForeignKey("monitor_endpoints.id"), nullable=False, index=True
+    )
+    opened_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    trigger_reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open", index=True)
+
+    endpoint: Mapped[MonitorEndpoint] = relationship(back_populates="incidents")
