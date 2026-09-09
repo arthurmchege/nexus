@@ -74,11 +74,21 @@ export default function HomePage() {
   }, []);
 
   if (loading) {
-    return <LoadingCards count={4} />;
+    return (
+      <>
+        <h1 className="sr-only">NEXUS</h1>
+        <LoadingCards count={4} />
+      </>
+    );
   }
 
   if (error) {
-    return <ErrorState title="Overview unavailable" description={error} onRetry={() => window.location.reload()} />;
+    return (
+      <>
+        <h1 className="sr-only">NEXUS</h1>
+        <ErrorState title="Overview unavailable" description={error} onRetry={() => window.location.reload()} />
+      </>
+    );
   }
 
   if (!summary) {
@@ -94,6 +104,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">NEXUS</h1>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Overview</p>

@@ -12,10 +12,13 @@ from app.schemas.monitoring import (
     MonitorEndpointCreate,
     MonitorEndpointOut,
     MonitorEndpointUpdate,
+    MonitorResultCreate,
     MonitorResultOut,
     MonitorStatsOut,
 )
+from app.services.monitoring import MonitoringCheckResult
 from app.services.monitoring_queries import compute_monitor_stats, compute_rollups
+from app.services.result_writer import write_monitoring_result
 
 router = APIRouter(prefix="/monitors", tags=["monitors"])
 
@@ -28,6 +31,7 @@ def get_monitor_or_404(db: Session, monitor_id: int) -> MonitorEndpoint:
 
 
 def get_monitor_status(db: Session, monitor_id: int) -> str:
+    endpoint = db.get(MonitorEndpoint, monitor_id)
     latest_result = db.scalar(
         select(MonitorResult)
         .where(MonitorResult.endpoint_id == monitor_id)
@@ -36,6 +40,8 @@ def get_monitor_status(db: Session, monitor_id: int) -> str:
     )
     if latest_result is None:
         return "unknown"
+    if endpoint is not None and endpoint.health_state in {"up", "down", "degraded"}:
+        return endpoint.health_state
     return "up" if latest_result.success else "down"
 
 
@@ -51,6 +57,9 @@ def create_monitor(
         interval_seconds=payload.interval_seconds,
         timeout_seconds=payload.timeout_seconds,
         active=payload.active,
+        failure_threshold=payload.failure_threshold,
+        recovery_threshold=payload.recovery_threshold,
+        notification_webhook_url=payload.notification_webhook_url,
     )
     db.add(endpoint)
     db.commit()
@@ -240,3 +249,28 @@ def get_monitor_history(
         .limit(limit)
     )
     return list(db.scalars(statement).all())
+
+
+@router.post("/{monitor_id}/results", response_model=MonitorResultOut)
+async def write_monitor_result(
+    monitor_id: int,
+    payload: MonitorResultCreate,
+    db: Session = Depends(get_db),
+) -> MonitorResult:
+    get_monitor_or_404(db, monitor_id)
+    result, _ = await write_monitoring_result(
+        db,
+        monitor_id=monitor_id,
+        result=MonitoringCheckResult(
+            endpoint_id=monitor_id,
+            url="",
+            http_status=payload.http_status,
+            latency_ms=payload.latency_ms,
+            response_size=payload.response_size,
+            success=payload.success,
+            error_category=payload.error_category,
+            error_details=payload.error_details,
+        ),
+        observed_at=payload.observed_at,
+    )
+    return result

@@ -15,6 +15,9 @@ class MonitorEndpointBase(BaseModel):
     interval_seconds: int = Field(default=60, ge=10)
     timeout_seconds: int = Field(default=10, ge=1)
     active: bool = True
+    failure_threshold: int = Field(default=2, ge=1, le=10)
+    recovery_threshold: int = Field(default=2, ge=1, le=10)
+    notification_webhook_url: str | None = Field(default=None, max_length=2048)
 
     @field_validator("url")
     @classmethod
@@ -46,6 +49,9 @@ class MonitorEndpointUpdate(BaseModel):
     interval_seconds: int | None = Field(default=None, ge=10)
     timeout_seconds: int | None = Field(default=None, ge=1)
     active: bool | None = None
+    failure_threshold: int | None = Field(default=None, ge=1, le=10)
+    recovery_threshold: int | None = Field(default=None, ge=1, le=10)
+    notification_webhook_url: str | None = Field(default=None, max_length=2048)
 
     @field_validator("url")
     @classmethod
@@ -107,5 +113,41 @@ class MonitorResultOut(BaseModel):
     success: bool
     error_category: str | None = None
     error_details: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MonitorResultCreate(BaseModel):
+    http_status: int = Field(..., ge=100, le=599)
+    latency_ms: int = Field(..., ge=0)
+    response_size: int = Field(..., ge=0)
+    success: bool
+    error_category: str | None = Field(default=None, max_length=64)
+    error_details: str | None = None
+    observed_at: datetime | None = None
+
+
+class AlertDeliveryOut(BaseModel):
+    id: int
+    incident_id: int
+    event: str
+    channel: str
+    status: str
+    attempts: int
+    last_error: str | None = None
+    delivered_at: datetime | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class IncidentOut(BaseModel):
+    id: int
+    monitor_id: int
+    opened_at: datetime
+    resolved_at: datetime | None = None
+    trigger_reason: str
+    status: str
+    deliveries: list[AlertDeliveryOut] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

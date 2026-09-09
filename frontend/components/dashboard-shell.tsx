@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutGrid },
   { href: '/monitors', label: 'Monitors', icon: Activity },
-  { href: '#', label: 'Alerts', icon: ShieldCheck },
+  { href: '/alerts', label: 'Alerts', icon: ShieldCheck },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <nav className="space-y-2">
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = href !== '#' && pathname === href;
-              const isPlaceholder = href === '#';
 
               return (
                 <Link
@@ -40,19 +39,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   href={href}
                   className={cn(
                     'flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors',
-                    isPlaceholder
-                      ? 'cursor-not-allowed border-slate-800 bg-slate-900/50 text-slate-500'
-                      : isActive
-                        ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'
-                        : 'border-transparent bg-slate-900/30 text-slate-300 hover:border-slate-700 hover:bg-slate-900/80',
+                    isActive
+                      ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'
+                      : 'border-transparent bg-slate-900/30 text-slate-300 hover:border-slate-700 hover:bg-slate-900/80',
                   )}
-                  aria-disabled={isPlaceholder}
                 >
                   <span className="flex items-center gap-3">
                     <Icon className="h-4 w-4" />
                     {label}
                   </span>
-                  {!isPlaceholder ? <ChevronRight className="h-4 w-4" /> : null}
+                  <ChevronRight className="h-4 w-4" />
                 </Link>
               );
             })}
