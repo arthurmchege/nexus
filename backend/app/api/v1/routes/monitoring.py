@@ -218,7 +218,8 @@ def get_monitor_stats(
     get_owned_monitor_or_404(db, monitor_id, user)
     if start and end and start >= end:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="start must be earlier than end."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="start must be earlier than end.",
         )
 
     if start is None and end is None:

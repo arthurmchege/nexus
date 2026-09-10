@@ -58,7 +58,9 @@ async def write_monitoring_result(
                 incident=transition.incident,
                 event=transition.event,
                 channel=delivery_channel,
-                channel_name="webhook" if isinstance(delivery_channel, WebhookChannel) else "mock",
+                channel_name=(
+                    "webhook" if isinstance(delivery_channel, WebhookChannel) else "mock"
+                ),
             )
 
     return stored_result, transition

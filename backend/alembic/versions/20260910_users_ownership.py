@@ -1,9 +1,11 @@
 """Add users and assign existing monitors to the migration admin."""
 
-from alembic import op
-import bcrypt
 import os
+
+import bcrypt
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "20260910_users_ownership"
 down_revision = "20260909_alert_deliveries"
@@ -34,19 +36,34 @@ def upgrade() -> None:
         ),
         {"email": email, "password": hashed},
     )
-    user_id = connection.execute(sa.text("SELECT id FROM users WHERE email = :email"), {"email": email}).scalar_one()
+    user_id = connection.execute(
+        sa.text("SELECT id FROM users WHERE email = :email"), {"email": email}
+    ).scalar_one()
 
     op.add_column("monitor_endpoints", sa.Column("owner_id", sa.Integer(), nullable=True))
-    connection.execute(sa.text("UPDATE monitor_endpoints SET owner_id = :owner_id"), {"owner_id": user_id})
+    connection.execute(
+        sa.text("UPDATE monitor_endpoints SET owner_id = :owner_id"),
+        {"owner_id": user_id},
+    )
     with op.batch_alter_table("monitor_endpoints") as batch_op:
         batch_op.alter_column("owner_id", nullable=False)
-    op.create_foreign_key("fk_monitor_endpoints_owner_id_users", "monitor_endpoints", "users", ["owner_id"], ["id"])
-    op.create_index("ix_monitor_endpoints_owner_id", "monitor_endpoints", ["owner_id"], unique=False)
+    op.create_foreign_key(
+        "fk_monitor_endpoints_owner_id_users",
+        "monitor_endpoints",
+        "users",
+        ["owner_id"],
+        ["id"],
+    )
+    op.create_index(
+        "ix_monitor_endpoints_owner_id", "monitor_endpoints", ["owner_id"], unique=False
+    )
 
 
 def downgrade() -> None:
     op.drop_index("ix_monitor_endpoints_owner_id", table_name="monitor_endpoints")
-    op.drop_constraint("fk_monitor_endpoints_owner_id_users", "monitor_endpoints", type_="foreignkey")
+    op.drop_constraint(
+        "fk_monitor_endpoints_owner_id_users", "monitor_endpoints", type_="foreignkey"
+    )
     op.drop_column("monitor_endpoints", "owner_id")
     op.drop_index("ix_users_email", table_name="users")
     op.drop_index("ix_users_id", table_name="users")

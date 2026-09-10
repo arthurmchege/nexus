@@ -5,8 +5,9 @@ Revises: 20260901_monitoring_scheduler_time_series
 Create Date: 2026-09-01 00:00:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20260901_monitoring_scheduler_claim_locking"

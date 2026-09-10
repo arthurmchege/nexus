@@ -4,8 +4,9 @@ Revision ID: 20260909_alert_deliveries
 Revises: 20260909_alert_incidents
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "20260909_alert_deliveries"
 down_revision = "20260909_alert_incidents"
@@ -39,7 +40,12 @@ def upgrade() -> None:
         ),
     )
     op.create_index("ix_alert_deliveries_id", "alert_deliveries", ["id"], unique=False)
-    op.create_index("ix_alert_deliveries_incident_id", "alert_deliveries", ["incident_id"], unique=False)
+    op.create_index(
+        "ix_alert_deliveries_incident_id",
+        "alert_deliveries",
+        ["incident_id"],
+        unique=False,
+    )
     op.create_index("ix_alert_deliveries_status", "alert_deliveries", ["status"], unique=False)
 
 

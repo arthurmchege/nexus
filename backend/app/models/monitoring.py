@@ -115,7 +115,10 @@ class MonitorResult(Base):
         DateTime, nullable=False, default=datetime.utcnow, index=True
     )
     partition_bucket: Mapped[str] = mapped_column(
-        String(7), nullable=False, default=lambda: datetime.utcnow().strftime("%Y-%m"), index=True
+        String(7),
+        nullable=False,
+        default=lambda: datetime.utcnow().strftime("%Y-%m"),
+        index=True,
     )
     http_status: Mapped[int] = mapped_column(Integer, nullable=False)
     latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)

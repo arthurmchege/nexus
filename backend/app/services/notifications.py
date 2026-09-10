@@ -91,10 +91,10 @@ async def dispatch_alert(
         "status": incident.status,
         "trigger_reason": incident.trigger_reason,
         "occurred_at": (
-            incident.opened_at if event == "opened" else incident.resolved_at
-        ).isoformat()
-        if (incident.opened_at if event == "opened" else incident.resolved_at)
-        else datetime.utcnow().isoformat(),
+            (incident.opened_at if event == "opened" else incident.resolved_at).isoformat()
+            if (incident.opened_at if event == "opened" else incident.resolved_at)
+            else datetime.utcnow().isoformat()
+        ),
     }
     for attempt in range(delivery.attempts + 1, max_attempts + 1):
         delivery.attempts = attempt

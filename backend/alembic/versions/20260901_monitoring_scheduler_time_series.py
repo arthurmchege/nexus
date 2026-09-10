@@ -60,15 +60,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        op.f("ix_monitor_results_partition_bucket"), table_name="monitor_results"
-    )
+    op.drop_index(op.f("ix_monitor_results_partition_bucket"), table_name="monitor_results")
     op.drop_column("monitor_results", "partition_bucket")
-    op.drop_index(
-        op.f("ix_monitor_endpoints_last_check_at"), table_name="monitor_endpoints"
-    )
-    op.drop_index(
-        op.f("ix_monitor_endpoints_next_check_at"), table_name="monitor_endpoints"
-    )
+    op.drop_index(op.f("ix_monitor_endpoints_last_check_at"), table_name="monitor_endpoints")
+    op.drop_index(op.f("ix_monitor_endpoints_next_check_at"), table_name="monitor_endpoints")
     op.drop_column("monitor_endpoints", "last_check_at")
     op.drop_column("monitor_endpoints", "next_check_at")

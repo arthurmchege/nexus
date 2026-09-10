@@ -38,7 +38,7 @@ jobs:
       - name: Run backend lint
         run: |
           cd backend && ruff check .
-          black --check .
+          ruff format --check .
           isort --check-only .
       - name: Run backend tests
         env:

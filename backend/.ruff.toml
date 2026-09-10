@@ -1,6 +1,4 @@
 line-length = 100
-exclude = ["alembic/versions"]
-
 [lint]
 select = ["E", "F", "I", "UP"]
 ignore = ["E501"]

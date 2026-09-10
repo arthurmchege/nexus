@@ -35,7 +35,8 @@ def test_signup_hashes_password_and_login_sets_cookie() -> None:
     client, factory = next(client_fixture())
     try:
         response = client.post(
-            "/api/v1/auth/signup", json={"email": "a@example.com", "password": "strong-pass"}
+            "/api/v1/auth/signup",
+            json={"email": "a@example.com", "password": "strong-pass"},
         )
         assert response.status_code == 201
         with factory() as db:
@@ -46,7 +47,8 @@ def test_signup_hashes_password_and_login_sets_cookie() -> None:
         assert logout.status_code == 204
         assert "Max-Age=0" in logout.headers["set-cookie"]
         login = client.post(
-            "/api/v1/auth/login", json={"email": "a@example.com", "password": "strong-pass"}
+            "/api/v1/auth/login",
+            json={"email": "a@example.com", "password": "strong-pass"},
         )
         assert login.status_code == 200
         assert client.get("/api/v1/auth/me").json()["email"] == "a@example.com"
@@ -59,7 +61,8 @@ def test_users_cannot_access_each_others_monitors() -> None:
     client, _ = next(generator)
     try:
         client.post(
-            "/api/v1/auth/signup", json={"email": "owner@example.com", "password": "strong-pass"}
+            "/api/v1/auth/signup",
+            json={"email": "owner@example.com", "password": "strong-pass"},
         )
         created = client.post(
             "/api/v1/monitors",
@@ -68,7 +71,8 @@ def test_users_cannot_access_each_others_monitors() -> None:
         monitor_id = created.json()["id"]
         client.post("/api/v1/auth/logout")
         client.post(
-            "/api/v1/auth/signup", json={"email": "other@example.com", "password": "strong-pass"}
+            "/api/v1/auth/signup",
+            json={"email": "other@example.com", "password": "strong-pass"},
         )
         assert client.get(f"/api/v1/monitors/{monitor_id}").status_code == 404
         assert (

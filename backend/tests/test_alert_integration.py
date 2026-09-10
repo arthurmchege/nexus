@@ -44,7 +44,9 @@ def successful_result() -> MonitoringCheckResult:
 
 
 @pytest.mark.asyncio
-async def test_result_write_opens_and_recovers_one_incident(db_session: Session) -> None:
+async def test_result_write_opens_and_recovers_one_incident(
+    db_session: Session,
+) -> None:
     endpoint = MonitorEndpoint(
         url="https://alerts.example.com/health",
         http_method="GET",

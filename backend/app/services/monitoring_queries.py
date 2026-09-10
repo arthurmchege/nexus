@@ -124,9 +124,9 @@ def compute_rollups(
                 "total_checks": total_checks,
                 "successful_checks": successful_checks,
                 "failed_checks": failed_checks,
-                "uptime_percentage": round((successful_checks / total_checks) * 100, 2)
-                if total_checks
-                else 0.0,
+                "uptime_percentage": (
+                    round((successful_checks / total_checks) * 100, 2) if total_checks else 0.0
+                ),
                 "avg_latency_ms": round(avg_latency_ms, 2),
             }
         )

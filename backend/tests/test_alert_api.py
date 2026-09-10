@@ -31,7 +31,9 @@ def api_client() -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_failed_results_create_alert_and_recovery_resolves_it(api_client: TestClient) -> None:
+def test_failed_results_create_alert_and_recovery_resolves_it(
+    api_client: TestClient,
+) -> None:
     created = api_client.post(
         "/api/v1/monitors",
         json={

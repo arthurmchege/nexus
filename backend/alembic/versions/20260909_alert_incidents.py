@@ -4,8 +4,9 @@ Revision ID: 20260909_alert_incidents
 Revises: 20260902_monitoring_result_indexes
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "20260909_alert_incidents"
 down_revision = "20260902_monitoring_result_indexes"

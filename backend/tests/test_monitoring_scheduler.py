@@ -55,7 +55,9 @@ def test_due_monitor_discovery(db_session: sessionmaker[Session]) -> None:
     assert due[0].url == "http://example.com/ready"
 
 
-def test_future_and_inactive_monitors_are_not_due(db_session: sessionmaker[Session]) -> None:
+def test_future_and_inactive_monitors_are_not_due(
+    db_session: sessionmaker[Session],
+) -> None:
     now = datetime.utcnow()
     with db_session() as session:
         session.add_all(
@@ -87,7 +89,9 @@ def test_future_and_inactive_monitors_are_not_due(db_session: sessionmaker[Sessi
     assert due == []
 
 
-def test_scheduler_claims_due_monitors_in_batches(db_session: sessionmaker[Session]) -> None:
+def test_scheduler_claims_due_monitors_in_batches(
+    db_session: sessionmaker[Session],
+) -> None:
     now = datetime.utcnow()
     with db_session() as session:
         session.add_all(

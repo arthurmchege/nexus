@@ -5,8 +5,9 @@ Revises: 20240831_init
 Create Date: 2026-08-31 18:00:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20240831_monitoring_models"
@@ -34,8 +35,18 @@ def upgrade() -> None:
         sa.CheckConstraint("expected_status_code >= 100", name="ck_monitor_expected_status_min"),
         sa.CheckConstraint("expected_status_code <= 599", name="ck_monitor_expected_status_max"),
     )
-    op.create_index(op.f("ix_monitor_endpoints_active"), "monitor_endpoints", ["active"], unique=False)
-    op.create_index(op.f("ix_monitor_endpoints_http_method"), "monitor_endpoints", ["http_method"], unique=False)
+    op.create_index(
+        op.f("ix_monitor_endpoints_active"),
+        "monitor_endpoints",
+        ["active"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_monitor_endpoints_http_method"),
+        "monitor_endpoints",
+        ["http_method"],
+        unique=False,
+    )
     op.create_index(op.f("ix_monitor_endpoints_id"), "monitor_endpoints", ["id"], unique=False)
     op.create_index(op.f("ix_monitor_endpoints_url"), "monitor_endpoints", ["url"], unique=False)
     op.create_table(
@@ -54,13 +65,32 @@ def upgrade() -> None:
         sa.CheckConstraint("http_status >= 100", name="ck_monitor_result_status_min"),
         sa.CheckConstraint("http_status <= 599", name="ck_monitor_result_status_max"),
         sa.CheckConstraint("latency_ms >= 0", name="ck_monitor_result_latency_non_negative"),
-        sa.CheckConstraint("response_size >= 0", name="ck_monitor_result_response_size_non_negative"),
+        sa.CheckConstraint(
+            "response_size >= 0", name="ck_monitor_result_response_size_non_negative"
+        ),
     )
-    op.create_index(op.f("ix_monitor_results_endpoint_id"), "monitor_results", ["endpoint_id"], unique=False)
-    op.create_index(op.f("ix_monitor_results_error_category"), "monitor_results", ["error_category"], unique=False)
+    op.create_index(
+        op.f("ix_monitor_results_endpoint_id"),
+        "monitor_results",
+        ["endpoint_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_monitor_results_error_category"),
+        "monitor_results",
+        ["error_category"],
+        unique=False,
+    )
     op.create_index(op.f("ix_monitor_results_id"), "monitor_results", ["id"], unique=False)
-    op.create_index(op.f("ix_monitor_results_observed_at"), "monitor_results", ["observed_at"], unique=False)
-    op.create_index(op.f("ix_monitor_results_success"), "monitor_results", ["success"], unique=False)
+    op.create_index(
+        op.f("ix_monitor_results_observed_at"),
+        "monitor_results",
+        ["observed_at"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_monitor_results_success"), "monitor_results", ["success"], unique=False
+    )
 
 
 def downgrade() -> None:
