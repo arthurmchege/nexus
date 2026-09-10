@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Globe, Plus, RefreshCw } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Globe, Pause, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
 
 import { MonitorForm, type MonitorFormValues } from '@/components/monitor-form';
 import { StatusBadge } from '@/components/monitor-status';
@@ -36,6 +36,7 @@ export default function MonitorListPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchMonitors = async () => {
@@ -74,6 +75,35 @@ export default function MonitorListPage() {
     setMonitors((current) => [created, ...current]);
     setShowCreate(false);
     setNotice('Monitor created successfully.');
+  };
+
+  const toggleMonitor = async (monitor: MonitorRecord) => {
+    setActionId(monitor.id);
+    try {
+      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`), { method: 'POST' });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor status could not be changed.');
+      setMonitors((current) => current.map((item) => (item.id === monitor.id ? { ...item, active: !monitor.active } : item)));
+      setNotice(`Monitor ${monitor.active ? 'paused' : 'resumed'}.`);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'The monitor status could not be changed.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const deleteMonitor = async (monitor: MonitorRecord) => {
+    if (!window.confirm(`Delete ${monitor.url}? This cannot be undone.`)) return;
+    setActionId(monitor.id);
+    try {
+      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), { method: 'DELETE' });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor could not be deleted.');
+      setMonitors((current) => current.filter((item) => item.id !== monitor.id));
+      setNotice('Monitor deleted.');
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'The monitor could not be deleted.');
+    } finally {
+      setActionId(null);
+    }
   };
 
   if (loading) {
@@ -137,7 +167,7 @@ export default function MonitorListPage() {
                   <TableHead>Method</TableHead>
                   <TableHead>Interval</TableHead>
                   <TableHead>Last update</TableHead>
-                  <TableHead className="text-right">Open</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -172,10 +202,25 @@ export default function MonitorListPage() {
                       })}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/monitors/${monitor.id}`} className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200">
-                        View
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={actionId === monitor.id}
+                          onClick={() => void toggleMonitor(monitor)}
+                          className="gap-1 text-slate-300 hover:text-white"
+                        >
+                          {monitor.active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                          {monitor.active ? 'Pause' : 'Resume'}
+                        </Button>
+                        <Button variant="ghost" size="icon" disabled={actionId === monitor.id} onClick={() => void deleteMonitor(monitor)} aria-label={`Delete ${monitor.url}`} className="text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Link href={`/monitors/${monitor.id}`} className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200">
+                          View
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

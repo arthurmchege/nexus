@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Gauge, RefreshCcw, ServerCog, TimerReset } from 'lucide-react';
+import { ArrowLeft, Gauge, Pause, Pencil, Play, RefreshCcw, ServerCog, TimerReset, Trash2 } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { MonitorForm, type MonitorFormValues } from '@/components/monitor-form';
+import { buildApiUrl } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -90,6 +92,9 @@ export default function MonitorDetailPage() {
   const [limit] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!Number.isFinite(monitorId)) {
@@ -129,6 +134,51 @@ export default function MonitorDetailPage() {
 
     void fetchMonitor();
   }, [monitorId, historySkip, limit]);
+
+  const toggleMonitor = async () => {
+    if (!monitor) return;
+    setActionLoading(true);
+    try {
+      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`), { method: 'POST' });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor status could not be changed.');
+      setMonitor({ ...monitor, active: !monitor.active });
+      setNotice(`Monitor ${monitor.active ? 'paused' : 'resumed'}.`);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'The monitor status could not be changed.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const deleteMonitor = async () => {
+    if (!monitor || !window.confirm(`Delete ${monitor.url}? This cannot be undone.`)) return;
+    setActionLoading(true);
+    try {
+      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), { method: 'DELETE' });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor could not be deleted.');
+      window.location.href = '/monitors';
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'The monitor could not be deleted.');
+      setActionLoading(false);
+    }
+  };
+
+  const updateMonitor = async (values: MonitorFormValues) => {
+    if (!monitor) return;
+    const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...values, notification_webhook_url: values.notification_webhook_url || null }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.detail ?? 'The monitor could not be updated.');
+    }
+    const updated = (await response.json()) as MonitorDetail;
+    setMonitor(updated);
+    setShowEdit(false);
+    setNotice('Monitor updated successfully.');
+  };
 
   const latencySeries = useMemo(
     () =>
@@ -184,9 +234,24 @@ export default function MonitorDetailPage() {
               {monitor.http_method} · expected {monitor.expected_status_code} · interval {monitor.interval_seconds}s
             </p>
           </div>
-          <StatusBadge status={monitor.status ?? 'unknown'} />
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={monitor.status ?? 'unknown'} />
+            <Button variant="outline" disabled={actionLoading} onClick={() => void toggleMonitor()} className="gap-2 border-slate-700 text-slate-200">
+              {monitor.active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {monitor.active ? 'Pause' : 'Resume'}
+            </Button>
+            <Button variant="outline" disabled={actionLoading} onClick={() => setShowEdit(true)} className="gap-2 border-slate-700 text-slate-200">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button variant="outline" disabled={actionLoading} onClick={() => void deleteMonitor()} className="gap-2 border-red-500/30 text-red-300 hover:bg-red-500/10">
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         </CardHeader>
       </Card>
+      {notice ? <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">{notice}</p> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
@@ -320,6 +385,15 @@ export default function MonitorDetailPage() {
           )}
         </CardContent>
       </Card>
+      {showEdit ? (
+        <MonitorForm
+          title="Edit monitor"
+          submitLabel="Save changes"
+          initialValues={{ ...monitor, notification_webhook_url: '' }}
+          onSubmit={updateMonitor}
+          onClose={() => setShowEdit(false)}
+        />
+      ) : null}
     </div>
   );
 }
