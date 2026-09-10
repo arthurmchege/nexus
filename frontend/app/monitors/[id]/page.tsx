@@ -34,6 +34,7 @@ type MonitorDetail = {
   interval_seconds: number;
   timeout_seconds: number;
   active: boolean;
+  notification_webhook_url?: string | null;
   created_at: string;
   updated_at: string;
   status?: string;
@@ -389,7 +390,7 @@ export default function MonitorDetailPage() {
         <MonitorForm
           title="Edit monitor"
           submitLabel="Save changes"
-          initialValues={{ ...monitor, notification_webhook_url: '' }}
+          initialValues={{ ...monitor, notification_webhook_url: monitor.notification_webhook_url ?? '' }}
           onSubmit={updateMonitor}
           onClose={() => setShowEdit(false)}
         />
