@@ -16,7 +16,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +31,7 @@ def read_root() -> dict[str, str]:
 
 
 def run_database_migrations() -> None:
-    if settings.app_env == "production":
+    if settings.app_env in {"production", "test"}:
         return
 
     alembic_cfg = Config(str(BACKEND_DIR / "alembic.ini"))

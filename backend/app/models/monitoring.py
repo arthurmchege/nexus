@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -18,6 +19,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
+
 
 class MonitorEndpoint(Base):
     """Registered HTTP endpoint and its scheduling state."""
@@ -32,6 +36,7 @@ class MonitorEndpoint(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     url: Mapped[str] = mapped_column(String(2048), nullable=False, index=True)
     http_method: Mapped[str] = mapped_column(String(10), nullable=False, default="GET", index=True)
     expected_status_code: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
@@ -77,6 +82,7 @@ class MonitorEndpoint(Base):
         back_populates="endpoint",
         cascade="all, delete-orphan",
     )
+    owner: Mapped[User] = relationship(back_populates="monitors")
     incidents: Mapped[list[Incident]] = relationship(
         back_populates="endpoint",
         cascade="all, delete-orphan",

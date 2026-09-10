@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     redis_host: str = Field(default="localhost", alias="REDIS_HOST")
     redis_port: int = Field(default=6380, alias="REDIS_PORT")
     redis_db: int = Field(default=0, alias="REDIS_DB")
+    jwt_secret_key: str = Field(default="dev-only-change-me", alias="JWT_SECRET_KEY")
+    jwt_expire_minutes: int = Field(default=60, alias="JWT_EXPIRE_MINUTES")
+    admin_email: str = Field(default="admin@nexus.local", alias="ADMIN_EMAIL")
+    admin_password: str = Field(default="change-me-immediately", alias="ADMIN_PASSWORD")
+    frontend_origin: str = Field(default="http://localhost:3001", alias="FRONTEND_ORIGIN")
 
     @property
     def database_url(self) -> str:

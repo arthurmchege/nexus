@@ -6,8 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.monitoring import MonitorEndpoint, MonitorResult
+from app.models.user import User
 from app.schemas.monitoring import (
     MonitorEndpointCreate,
     MonitorEndpointOut,
@@ -25,6 +27,17 @@ router = APIRouter(prefix="/monitors", tags=["monitors"])
 
 def get_monitor_or_404(db: Session, monitor_id: int) -> MonitorEndpoint:
     endpoint = db.get(MonitorEndpoint, monitor_id)
+    if endpoint is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found.")
+    return endpoint
+
+
+def get_owned_monitor_or_404(db: Session, monitor_id: int, user: User) -> MonitorEndpoint:
+    endpoint = db.scalar(
+        select(MonitorEndpoint).where(
+            MonitorEndpoint.id == monitor_id, MonitorEndpoint.owner_id == user.id
+        )
+    )
     if endpoint is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found.")
     return endpoint
@@ -49,6 +62,7 @@ def get_monitor_status(db: Session, monitor_id: int) -> str:
 def create_monitor(
     payload: MonitorEndpointCreate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorEndpoint:
     endpoint = MonitorEndpoint(
         url=payload.url,
@@ -60,6 +74,7 @@ def create_monitor(
         failure_threshold=payload.failure_threshold,
         recovery_threshold=payload.recovery_threshold,
         notification_webhook_url=payload.notification_webhook_url,
+        owner_id=user.id,
     )
     db.add(endpoint)
     db.commit()
@@ -74,8 +89,9 @@ def list_monitors(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[MonitorEndpoint]:
-    statement = select(MonitorEndpoint)
+    statement = select(MonitorEndpoint).where(MonitorEndpoint.owner_id == user.id)
     if active is not None:
         statement = statement.where(MonitorEndpoint.active.is_(active))
     statement = statement.order_by(MonitorEndpoint.created_at.desc()).offset(skip).limit(limit)
@@ -89,10 +105,13 @@ def list_monitors(
 def get_system_summary(
     window_days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> dict[str, object]:
     end = datetime.utcnow()
     start = end - timedelta(days=window_days)
-    endpoints = list(db.scalars(select(MonitorEndpoint)).all())
+    endpoints = list(
+        db.scalars(select(MonitorEndpoint).where(MonitorEndpoint.owner_id == user.id)).all()
+    )
     total_monitors = len(endpoints)
     down_monitors = 0
     total_checks = 0
@@ -123,8 +142,9 @@ def get_system_summary(
 def get_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorEndpoint:
-    endpoint = get_monitor_or_404(db, monitor_id)
+    endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     endpoint.status = get_monitor_status(db, monitor_id)
     return endpoint
 
@@ -134,8 +154,9 @@ def update_monitor(
     monitor_id: int,
     payload: MonitorEndpointUpdate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorEndpoint:
-    endpoint = get_monitor_or_404(db, monitor_id)
+    endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     update_data = payload.model_dump(exclude_unset=True)
     for field_name, value in update_data.items():
         setattr(endpoint, field_name, value)
@@ -149,8 +170,9 @@ def update_monitor(
 def activate_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorEndpoint:
-    endpoint = get_monitor_or_404(db, monitor_id)
+    endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     endpoint.active = True
     db.commit()
     db.refresh(endpoint)
@@ -162,8 +184,9 @@ def activate_monitor(
 def deactivate_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorEndpoint:
-    endpoint = get_monitor_or_404(db, monitor_id)
+    endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     endpoint.active = False
     db.commit()
     db.refresh(endpoint)
@@ -175,8 +198,9 @@ def deactivate_monitor(
 def delete_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Response:
-    endpoint = get_monitor_or_404(db, monitor_id)
+    endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     db.delete(endpoint)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -189,8 +213,9 @@ def get_monitor_stats(
     end: datetime | None = Query(default=None),
     window_days: int = Query(7, ge=1, le=365),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> dict[str, object]:
-    get_monitor_or_404(db, monitor_id)
+    get_owned_monitor_or_404(db, monitor_id, user)
     if start and end and start >= end:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="start must be earlier than end."
@@ -239,8 +264,9 @@ def get_monitor_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[MonitorResult]:
-    get_monitor_or_404(db, monitor_id)
+    get_owned_monitor_or_404(db, monitor_id, user)
     statement = (
         select(MonitorResult)
         .where(MonitorResult.endpoint_id == monitor_id)
@@ -256,8 +282,9 @@ async def write_monitor_result(
     monitor_id: int,
     payload: MonitorResultCreate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MonitorResult:
-    get_monitor_or_404(db, monitor_id)
+    get_owned_monitor_or_404(db, monitor_id, user)
     result, _ = await write_monitoring_result(
         db,
         monitor_id=monitor_id,
