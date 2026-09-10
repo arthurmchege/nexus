@@ -37,8 +37,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   if (checkingAuth) return <div className="min-h-screen bg-slate-950" />;
 
   async function logout() {
-    await apiFetch('/api/v1/auth/logout', { method: 'POST' });
-    router.replace('/login');
+    try {
+      await apiFetch('/api/v1/auth/logout', { method: 'POST' });
+    } finally {
+      router.replace('/login');
+    }
   }
 
   return (

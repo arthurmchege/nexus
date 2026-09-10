@@ -54,10 +54,9 @@ def login(
     return {"user": user}
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response) -> Response:
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+def logout(response: Response) -> None:
     response.delete_cookie(COOKIE_NAME)
-    return response
 
 
 @router.get("/me", response_model=UserOut)

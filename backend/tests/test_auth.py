@@ -42,7 +42,9 @@ def test_signup_hashes_password_and_login_sets_cookie() -> None:
             user = db.query(User).first()
             assert user is not None
             assert user.hashed_password != "strong-pass"
-        client.post("/api/v1/auth/logout")
+        logout = client.post("/api/v1/auth/logout")
+        assert logout.status_code == 204
+        assert "Max-Age=0" in logout.headers["set-cookie"]
         login = client.post(
             "/api/v1/auth/login", json={"email": "a@example.com", "password": "strong-pass"}
         )
