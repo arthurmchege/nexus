@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiErrorMessage } from '@/lib/api';
 
 export type MonitorFormValues = {
   url: string;
@@ -36,19 +37,6 @@ const defaults: MonitorFormValues = {
   notification_webhook_url: '',
 };
 
-function getApiError(payload: unknown): string {
-  if (typeof payload === 'object' && payload !== null && 'detail' in payload) {
-    const detail = (payload as { detail?: unknown }).detail;
-    if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => (typeof item === 'object' && item !== null && 'msg' in item ? String(item.msg) : String(item)))
-        .join(', ');
-    }
-  }
-  return 'The API rejected this monitor. Check the values and try again.';
-}
-
 export function MonitorForm({ initialValues, submitLabel, title, onSubmit, onClose }: MonitorFormProps) {
   const [values, setValues] = useState<MonitorFormValues>({ ...defaults, ...initialValues });
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +63,7 @@ export function MonitorForm({ initialValues, submitLabel, title, onSubmit, onClo
       setSubmitting(true);
       await onSubmit(values);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : getApiError(submitError));
+      setError(submitError instanceof Error ? submitError.message : getApiErrorMessage(submitError, 'The API rejected this monitor. Check the values and try again.'));
     } finally {
       setSubmitting(false);
     }

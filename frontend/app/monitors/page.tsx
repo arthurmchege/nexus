@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import { buildApiUrl } from '@/lib/api';
+import { buildApiUrl, getApiErrorMessage } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -69,7 +69,7 @@ export default function MonitorListPage() {
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
-      throw new Error(payload?.detail ?? 'The monitor could not be created.');
+      throw new Error(getApiErrorMessage(payload, 'The monitor could not be created.'));
     }
     const created = (await response.json()) as MonitorRecord;
     setMonitors((current) => [created, ...current]);
@@ -81,7 +81,7 @@ export default function MonitorListPage() {
     setActionId(monitor.id);
     try {
       const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`), { method: 'POST' });
-      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor status could not be changed.');
+      if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor status could not be changed.'));
       setMonitors((current) => current.map((item) => (item.id === monitor.id ? { ...item, active: !monitor.active } : item)));
       setNotice(`Monitor ${monitor.active ? 'paused' : 'resumed'}.`);
     } catch (actionError) {
@@ -96,7 +96,7 @@ export default function MonitorListPage() {
     setActionId(monitor.id);
     try {
       const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), { method: 'DELETE' });
-      if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? 'The monitor could not be deleted.');
+      if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor could not be deleted.'));
       setMonitors((current) => current.filter((item) => item.id !== monitor.id));
       setNotice('Monitor deleted.');
     } catch (actionError) {
