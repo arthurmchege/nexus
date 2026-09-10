@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import { buildApiUrl, getApiErrorMessage } from '@/lib/api';
+import { apiFetch, getApiErrorMessage } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -44,7 +44,7 @@ export default function MonitorListPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${apiBase}/api/v1/monitors?skip=${skip}&limit=${limit}`);
+        const response = await apiFetch(`/api/v1/monitors?skip=${skip}&limit=${limit}`);
         if (!response.ok) {
           throw new Error('The monitor list is unavailable right now.');
         }
@@ -62,7 +62,7 @@ export default function MonitorListPage() {
   }, [skip, limit]);
 
   const createMonitor = async (values: MonitorFormValues) => {
-    const response = await fetch(buildApiUrl('/api/v1/monitors'), {
+    const response = await apiFetch('/api/v1/monitors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...values, notification_webhook_url: values.notification_webhook_url || null }),
@@ -80,7 +80,7 @@ export default function MonitorListPage() {
   const toggleMonitor = async (monitor: MonitorRecord) => {
     setActionId(monitor.id);
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`), { method: 'POST' });
+      const response = await apiFetch(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`, { method: 'POST' });
       if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor status could not be changed.'));
       setMonitors((current) => current.map((item) => (item.id === monitor.id ? { ...item, active: !monitor.active } : item)));
       setNotice(`Monitor ${monitor.active ? 'paused' : 'resumed'}.`);
@@ -95,7 +95,7 @@ export default function MonitorListPage() {
     if (!window.confirm(`Delete ${monitor.url}? This cannot be undone.`)) return;
     setActionId(monitor.id);
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), { method: 'DELETE' });
+      const response = await apiFetch(`/api/v1/monitors/${monitor.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor could not be deleted.'));
       setMonitors((current) => current.filter((item) => item.id !== monitor.id));
       setNotice('Monitor deleted.');

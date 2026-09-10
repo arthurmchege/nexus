@@ -7,6 +7,10 @@ export function buildApiUrl(path: string) {
   return `${getApiBaseUrl()}${normalizedPath}`;
 }
 
+export function apiFetch(path: string, init?: RequestInit) {
+  return fetch(buildApiUrl(path), { ...init, credentials: 'include' });
+}
+
 export function getApiErrorMessage(payload: unknown, fallback: string) {
   if (typeof payload === 'object' && payload !== null && 'detail' in payload) {
     const detail = (payload as { detail?: unknown }).detail;

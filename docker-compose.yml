@@ -12,7 +12,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,7 +85,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c "alembic upgrade head && python -m app.worker"
+    command: python -m app.worker
 
   # Next.js serves the operator dashboard and consumes the backend API.
   frontend:

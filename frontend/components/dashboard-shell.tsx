@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Activity, ChevronRight, LayoutGrid, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutGrid },
@@ -14,6 +16,30 @@ const navItems = [
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(!isAuthPage);
+
+  useEffect(() => {
+    if (isAuthPage) return;
+    void apiFetch('/api/v1/auth/me').then(async (response) => {
+      if (!response.ok) {
+        router.replace('/login');
+        return;
+      }
+      setUser((await response.json()) as { email: string });
+      setCheckingAuth(false);
+    });
+  }, [isAuthPage, router]);
+
+  if (isAuthPage) return <>{children}</>;
+  if (checkingAuth) return <div className="min-h-screen bg-slate-950" />;
+
+  async function logout() {
+    await apiFetch('/api/v1/auth/logout', { method: 'POST' });
+    router.replace('/login');
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -77,7 +103,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
               <div className="flex items-center gap-2 text-sm text-slate-300">
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
-                Live status
+                {user?.email}
+                <button onClick={() => void logout()} className="text-cyan-300 hover:text-cyan-200">Sign out</button>
               </div>
             </div>
           </header>

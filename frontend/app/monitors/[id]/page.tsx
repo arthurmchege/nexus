@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MonitorForm, type MonitorFormValues } from '@/components/monitor-form';
-import { buildApiUrl, getApiErrorMessage } from '@/lib/api';
+import { apiFetch, getApiErrorMessage } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -110,9 +110,9 @@ export default function MonitorDetailPage() {
         setError(null);
 
         const [monitorRes, statsRes, historyRes] = await Promise.all([
-          fetch(`${apiBase}/api/v1/monitors/${monitorId}`),
-          fetch(`${apiBase}/api/v1/monitors/${monitorId}/stats?window_days=30`),
-          fetch(`${apiBase}/api/v1/monitors/${monitorId}/history?skip=${historySkip}&limit=${limit}`),
+          apiFetch(`/api/v1/monitors/${monitorId}`),
+          apiFetch(`/api/v1/monitors/${monitorId}/stats?window_days=30`),
+          apiFetch(`/api/v1/monitors/${monitorId}/history?skip=${historySkip}&limit=${limit}`),
         ]);
 
         if (!monitorRes.ok || !statsRes.ok || !historyRes.ok) {
@@ -140,7 +140,7 @@ export default function MonitorDetailPage() {
     if (!monitor) return;
     setActionLoading(true);
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`), { method: 'POST' });
+      const response = await apiFetch(`/api/v1/monitors/${monitor.id}/${monitor.active ? 'deactivate' : 'activate'}`, { method: 'POST' });
       if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor status could not be changed.'));
       setMonitor({ ...monitor, active: !monitor.active });
       setNotice(`Monitor ${monitor.active ? 'paused' : 'resumed'}.`);
@@ -155,7 +155,7 @@ export default function MonitorDetailPage() {
     if (!monitor || !window.confirm(`Delete ${monitor.url}? This cannot be undone.`)) return;
     setActionLoading(true);
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), { method: 'DELETE' });
+      const response = await apiFetch(`/api/v1/monitors/${monitor.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(getApiErrorMessage(await response.json().catch(() => null), 'The monitor could not be deleted.'));
       window.location.href = '/monitors';
     } catch (actionError) {
@@ -166,7 +166,7 @@ export default function MonitorDetailPage() {
 
   const updateMonitor = async (values: MonitorFormValues) => {
     if (!monitor) return;
-    const response = await fetch(buildApiUrl(`/api/v1/monitors/${monitor.id}`), {
+    const response = await apiFetch(`/api/v1/monitors/${monitor.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...values, notification_webhook_url: values.notification_webhook_url || null }),

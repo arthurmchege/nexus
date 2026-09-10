@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/monitor-status';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
+import { apiFetch } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -50,8 +51,8 @@ export default function HomePage() {
         setError(null);
 
         const [summaryRes, monitorsRes] = await Promise.all([
-          fetch(`${apiBase}/api/v1/monitors/summary`),
-          fetch(`${apiBase}/api/v1/monitors?skip=0&limit=5`),
+          apiFetch('/api/v1/monitors/summary'),
+          apiFetch('/api/v1/monitors?skip=0&limit=5'),
         ]);
 
         if (!summaryRes.ok || !monitorsRes.ok) {

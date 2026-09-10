@@ -7,6 +7,7 @@ import { AlertTriangle, BellRing, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState, LoadingCards } from '@/components/ui-states';
+import { apiFetch } from '@/lib/api';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
@@ -43,7 +44,7 @@ export default function AlertsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${apiBase}/api/v1/alerts?limit=100`);
+      const response = await apiFetch('/api/v1/alerts?limit=100');
       if (!response.ok) {
         throw new Error('The alert history is unavailable right now.');
       }
