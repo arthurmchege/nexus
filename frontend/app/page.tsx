@@ -149,11 +149,11 @@ export default function HomePage() {
           {summary.total_monitors === 0 ? (
             <EmptyState
               title="No monitors are being tracked yet"
-              description="Create a monitor through the API, then the dashboard will surface health, latency, and incident trends here."
+              description="Add your first endpoint from the Monitors workspace, then the dashboard will surface health, latency, and incident trends here."
               action={
                 <Link href="/monitors">
                   <Button className="gap-2 bg-cyan-500 text-slate-950 hover:bg-cyan-400">
-                    Browse monitors
+                    Add monitor
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
