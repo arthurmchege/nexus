@@ -5,7 +5,7 @@ import { FormEvent, useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { apiFetch, getApiErrorMessage } from '@/lib/api';
+import { apiFetch, getApiResponseErrorMessage } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,7 +23,7 @@ export default function LoginPage() {
       body: JSON.stringify({ email, password }),
     });
     if (!response.ok) {
-      setError(getApiErrorMessage(await response.json().catch(() => null), 'Invalid email or password.'));
+      setError(getApiResponseErrorMessage(response, await response.json().catch(() => null), 'Invalid email or password.'));
       setLoading(false);
       return;
     }

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 
 import { AuthCard } from '@/app/login/page';
-import { apiFetch, getApiErrorMessage } from '@/lib/api';
+import { apiFetch, getApiResponseErrorMessage } from '@/lib/api';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -22,7 +22,7 @@ export default function SignupPage() {
       body: JSON.stringify({ email, password }),
     });
     if (!response.ok) {
-      setError(getApiErrorMessage(await response.json().catch(() => null), 'The account could not be created.'));
+      setError(getApiResponseErrorMessage(response, await response.json().catch(() => null), 'The account could not be created.'));
       setLoading(false);
       return;
     }

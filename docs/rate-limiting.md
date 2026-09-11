@@ -13,7 +13,8 @@ user's failed attempts.
 The limits are intentionally separate because password guessing and account
 creation abuse have different patterns. A successful login clears the
 current email counter. Exceeding a limit returns `429 Too Many Requests` with
-`Retry-After`.
+`Retry-After`, which is exposed through CORS so the browser can show the
+remaining wait time.
 
 The implementation uses fixed windows rather than a sliding window to keep
 the Redis operation atomic and inexpensive across multiple backend instances.

@@ -23,3 +23,17 @@ export function getApiErrorMessage(payload: unknown, fallback: string) {
   }
   return fallback;
 }
+
+export function getApiResponseErrorMessage(
+  response: Response,
+  payload: unknown,
+  fallback: string,
+) {
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('Retry-After');
+    return retryAfter
+      ? `Too many attempts. Please try again in ${retryAfter} seconds.`
+      : 'Too many attempts. Please try again later.';
+  }
+  return getApiErrorMessage(payload, fallback);
+}
