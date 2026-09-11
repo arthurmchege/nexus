@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 
-import { AuthCard } from '@/app/login/page';
+import { AuthCard } from '@/components/auth-card';
 import { apiFetch, getApiResponseErrorMessage } from '@/lib/api';
 
 export default function SignupPage() {

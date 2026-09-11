@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import secrets
 from typing import Any
 
 import redis
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.redis_client import redis_client
 
-logger = logging.getLogger("nexus")
 RESET_TOKEN_TTL = 15 * 60
 
 
@@ -26,12 +25,12 @@ def create_reset_token(user_id: int, client: Any = redis_client) -> str:
     except redis.RedisError:
         raise
     if settings.app_env == "development":
-        logger.info(
-            "Development password reset link for user %s: %s?token=%s",
-            user_id,
-            settings.password_reset_frontend_url,
-            token,
+        message = (
+            f"Development password reset link for user {user_id}: "
+            f"{settings.password_reset_frontend_url}?token={token}"
         )
+        logger.info(message)
+        print(message, flush=True)
     return token
 
 
