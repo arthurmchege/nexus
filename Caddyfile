@@ -1,6 +1,9 @@
 {$NEXUS_DOMAIN:localhost} {
     handle /api/* {
-        reverse_proxy backend:8000
+        reverse_proxy backend:8000 {
+            header_up -X-Forwarded-For
+            header_up X-Forwarded-For {http.request.remote.host}
+        }
     }
 
     handle {

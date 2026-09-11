@@ -5,6 +5,13 @@ include both the normalized email and client IP, so rotating one identity
 does not bypass all protection while a shared network is not blocked by one
 user's failed attempts.
 
+When traffic arrives from Caddy, the backend trusts the first
+`X-Forwarded-For` address only if the direct connection belongs to
+`TRUSTED_PROXY_CIDRS` (the default Docker bridge range). Direct requests from
+outside that range cannot spoof the header and are identified by their socket
+address. Caddy explicitly removes any client-supplied forwarded header before
+setting the header it sends upstream.
+
 ## Limits
 
 - Login: 5 attempts per email per 15 minutes and 20 attempts per IP per hour.

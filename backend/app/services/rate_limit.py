@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from ipaddress import ip_address, ip_network
 from typing import Any, Callable
 
 import redis
 from fastapi import HTTPException, Request, status
 
+from app.core.config import settings
 from app.core.redis_client import redis_client
 from app.schemas.auth import AuthCredentials
 
@@ -75,7 +77,27 @@ SIGNUP_IP_LIMIT = RateLimit(requests=10, window_seconds=15 * 60)
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    connection_ip = request.client.host if request.client else "unknown"
+    try:
+        trusted = any(
+            ip_address(connection_ip) in ip_network(cidr.strip())
+            for cidr in settings.trusted_proxy_cidrs.split(",")
+            if cidr.strip()
+        )
+    except ValueError:
+        trusted = False
+
+    if trusted:
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            candidate = forwarded_for.split(",", maxsplit=1)[0].strip()
+            try:
+                ip_address(candidate)
+            except ValueError:
+                pass
+            else:
+                return candidate
+    return connection_ip
 
 
 def check_login_rate_limit(request: Request, payload: AuthCredentials) -> None:

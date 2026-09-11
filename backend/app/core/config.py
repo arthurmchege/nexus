@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     admin_email: str = Field(default="admin@nexus.local", alias="ADMIN_EMAIL")
     admin_password: str = Field(default="change-me-immediately", alias="ADMIN_PASSWORD")
     frontend_origin: str = Field(default="http://localhost:3001", alias="FRONTEND_ORIGIN")
+    trusted_proxy_cidrs: str = Field(default="172.16.0.0/12", alias="TRUSTED_PROXY_CIDRS")
 
     @property
     def database_url(self) -> str:

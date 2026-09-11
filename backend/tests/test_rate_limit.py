@@ -1,8 +1,9 @@
 import pytest
 import redis
 from fastapi import HTTPException
+from starlette.requests import Request
 
-from app.services.rate_limit import RateLimit, RedisRateLimiter
+from app.services.rate_limit import RateLimit, RedisRateLimiter, _client_ip
 
 
 class FakeRedis:
@@ -66,3 +67,29 @@ def test_redis_failure_fails_closed() -> None:
     with pytest.raises(HTTPException) as error:
         limiter.check("login:ip:127.0.0.1", RateLimit(requests=1, window_seconds=60))
     assert error.value.status_code == 503
+
+
+def test_forwarded_ip_is_used_only_from_trusted_proxy() -> None:
+    trusted_request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/",
+            "headers": [(b"x-forwarded-for", b"203.0.113.10, 172.20.0.4")],
+            "client": ("172.20.0.4", 1234),
+            "server": ("backend", 8000),
+        }
+    )
+    assert _client_ip(trusted_request) == "203.0.113.10"
+
+    untrusted_request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/",
+            "headers": [(b"x-forwarded-for", b"203.0.113.10")],
+            "client": ("198.51.100.20", 1234),
+            "server": ("backend", 8000),
+        }
+    )
+    assert _client_ip(untrusted_request) == "198.51.100.20"
