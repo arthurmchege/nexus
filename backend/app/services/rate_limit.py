@@ -10,7 +10,7 @@ from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
 from app.core.redis_client import redis_client
-from app.schemas.auth import AuthCredentials
+from app.schemas.auth import AuthCredentials, PasswordResetRequest
 
 
 @dataclass(frozen=True)
@@ -74,6 +74,8 @@ LOGIN_EMAIL_LIMIT = RateLimit(requests=5, window_seconds=15 * 60)
 LOGIN_IP_LIMIT = RateLimit(requests=20, window_seconds=60 * 60)
 SIGNUP_EMAIL_LIMIT = RateLimit(requests=3, window_seconds=60 * 60)
 SIGNUP_IP_LIMIT = RateLimit(requests=10, window_seconds=15 * 60)
+RESET_EMAIL_LIMIT = RateLimit(requests=3, window_seconds=60 * 60)
+RESET_IP_LIMIT = RateLimit(requests=10, window_seconds=15 * 60)
 
 
 def _client_ip(request: Request) -> str:
@@ -110,3 +112,9 @@ def check_signup_rate_limit(request: Request, payload: AuthCredentials) -> None:
     email = payload.email.lower()
     rate_limiter.check(f"signup:email:{email}", SIGNUP_EMAIL_LIMIT)
     rate_limiter.check(f"signup:ip:{_client_ip(request)}", SIGNUP_IP_LIMIT)
+
+
+def check_reset_rate_limit(request: Request, payload: PasswordResetRequest) -> None:
+    email = payload.email.lower()
+    rate_limiter.check(f"reset:email:{email}", RESET_EMAIL_LIMIT)
+    rate_limiter.check(f"reset:ip:{_client_ip(request)}", RESET_IP_LIMIT)

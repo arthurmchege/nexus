@@ -1,8 +1,10 @@
+from datetime import timezone
+
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import decode_access_token, hash_password
+from app.core.security import decode_access_token_claims, hash_password
 from app.db.session import get_db
 from app.models.user import User
 
@@ -24,7 +26,8 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
         )
     try:
-        user_id = decode_access_token(session_token)
+        claims = decode_access_token_claims(session_token)
+        user_id = int(claims["sub"])
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -36,4 +39,11 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session.",
         )
+    issued_at = claims.get("iat")
+    if user.password_changed_at is not None and isinstance(issued_at, (int, float)):
+        if issued_at < user.password_changed_at.replace(tzinfo=timezone.utc).timestamp():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired session.",
+            )
     return user

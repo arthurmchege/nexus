@@ -21,5 +21,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     monitors: Mapped[list[MonitorEndpoint]] = relationship(back_populates="owner")

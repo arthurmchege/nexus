@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     admin_password: str = Field(default="change-me-immediately", alias="ADMIN_PASSWORD")
     frontend_origin: str = Field(default="http://localhost:3001", alias="FRONTEND_ORIGIN")
     trusted_proxy_cidrs: str = Field(default="172.16.0.0/12", alias="TRUSTED_PROXY_CIDRS")
+    password_reset_frontend_url: str = Field(
+        default="http://localhost:3001/reset-password", alias="PASSWORD_RESET_FRONTEND_URL"
+    )
 
     @property
     def database_url(self) -> str:

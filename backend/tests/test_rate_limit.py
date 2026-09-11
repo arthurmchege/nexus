@@ -30,6 +30,13 @@ class FakeRedis:
         for key in keys:
             self.values.pop(key, None)
 
+    def getdel(self, key: str) -> str | None:
+        value = self.values.pop(key, None)
+        return str(value) if value is not None else None
+
+    def setex(self, key: str, seconds: int, value: str) -> None:
+        self.values[key] = int(value)
+
 
 def test_rate_limit_returns_retry_after_and_resets_after_window() -> None:
     clock = [100.0]
@@ -67,6 +74,15 @@ def test_redis_failure_fails_closed() -> None:
     with pytest.raises(HTTPException) as error:
         limiter.check("login:ip:127.0.0.1", RateLimit(requests=1, window_seconds=60))
     assert error.value.status_code == 503
+
+
+def test_reset_tokens_are_single_use() -> None:
+    from app.services.password_reset import consume_reset_token, create_reset_token
+
+    client = FakeRedis([100.0])
+    token = create_reset_token(42, client)
+    assert consume_reset_token(token, client) == 42
+    assert consume_reset_token(token, client) is None
 
 
 def test_forwarded_ip_is_used_only_from_trusted_proxy() -> None:

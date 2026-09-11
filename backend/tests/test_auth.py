@@ -190,3 +190,55 @@ def test_login_endpoint_returns_429_and_success_resets_email_counter(monkeypatch
         )
     finally:
         app.dependency_overrides.clear()
+
+
+def test_password_reset_is_generic_and_changes_password(monkeypatch) -> None:
+    import app.api.v1.routes.auth as auth_routes
+
+    generator = client_fixture()
+    client, factory = next(generator)
+    try:
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "reset@example.com", "password": "old-password"},
+        )
+        assert signup.status_code == 201
+        request_response = client.post(
+            "/api/v1/auth/request-password-reset",
+            json={"email": "reset@example.com"},
+        )
+        missing_response = client.post(
+            "/api/v1/auth/request-password-reset",
+            json={"email": "missing@example.com"},
+        )
+        assert request_response.status_code == missing_response.status_code == 200
+        assert request_response.json() == missing_response.json()
+
+        monkeypatch.setattr(auth_routes, "consume_reset_token", lambda token: 1)
+        reset = client.post(
+            "/api/v1/auth/reset-password",
+            json={"token": "token-" + "x" * 20, "password": "new-password"},
+        )
+        assert reset.status_code == 200
+        assert client.get("/api/v1/auth/me").status_code == 401
+        client.post("/api/v1/auth/logout")
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "reset@example.com", "password": "old-password"},
+            ).status_code
+            == 401
+        )
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "reset@example.com", "password": "new-password"},
+            ).status_code
+            == 200
+        )
+        with factory() as db:
+            assert (
+                db.query(User).filter(User.email == "reset@example.com").one().password_changed_at
+            )
+    finally:
+        app.dependency_overrides.clear()

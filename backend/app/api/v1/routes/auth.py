@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -7,9 +9,17 @@ from app.core.config import settings
 from app.core.security import COOKIE_NAME, create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import AuthCredentials, AuthResponse, UserOut
+from app.schemas.auth import (
+    AuthCredentials,
+    AuthResponse,
+    PasswordResetPayload,
+    PasswordResetRequest,
+    UserOut,
+)
+from app.services.password_reset import consume_reset_token, create_reset_token
 from app.services.rate_limit import (
     check_login_rate_limit,
+    check_reset_rate_limit,
     check_signup_rate_limit,
     rate_limiter,
 )
@@ -63,6 +73,39 @@ def login(
     rate_limiter.reset(f"login:email:{payload.email.lower()}")
     set_session_cookie(response, user.id)
     return {"user": user}
+
+
+@router.post("/request-password-reset")
+def request_password_reset(
+    payload: PasswordResetRequest,
+    request: Request,
+    _: None = Depends(check_reset_rate_limit),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+    if user is not None:
+        create_reset_token(user.id)
+    return {"message": "If an account exists for that email, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(payload: PasswordResetPayload, db: Session = Depends(get_db)) -> dict[str, str]:
+    user_id = consume_reset_token(payload.token)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The reset link is invalid or expired.",
+        )
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The reset link is invalid or expired.",
+        )
+    user.hashed_password = hash_password(payload.password)
+    user.password_changed_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Password reset successfully. Please sign in again."}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
