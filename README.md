@@ -24,8 +24,16 @@ The services are then available at:
 - API documentation: <http://localhost:8001/docs>
 - PostgreSQL: `localhost:5433`
 - Redis: `localhost:6380`
+- Caddy HTTP proxy: `http://localhost:8080`
+- Caddy HTTPS proxy: `https://localhost:8443` (local certificate)
 
 The backend container applies Alembic migrations before starting the API.
+
+For public deployment, configure `NEXUS_DOMAIN`, `CADDY_EMAIL`,
+`APP_ENV=production`, and `FRONTEND_ORIGIN=https://NEXUS_DOMAIN` in `.env`.
+Point the domain's DNS records at the host and expose ports 80 and 443 so
+Caddy can obtain a trusted certificate. See
+[`docs/auth-transport-security.md`](docs/auth-transport-security.md).
 
 ### Run backend tests
 
