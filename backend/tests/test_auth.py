@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -53,6 +54,43 @@ def test_signup_hashes_password_and_login_sets_cookie() -> None:
         assert login.status_code == 200
         assert client.get("/api/v1/auth/me").json()["email"] == "a@example.com"
     finally:
+        app.dependency_overrides.clear()
+
+
+def test_session_cookie_is_not_secure_in_development() -> None:
+    generator = client_fixture()
+    client, _ = next(generator)
+    try:
+        settings.app_env = "test"
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "development@example.com", "password": "strong-pass"},
+        )
+        cookie = response.headers["set-cookie"]
+        assert "HttpOnly" in cookie
+        assert "SameSite=lax" in cookie
+        assert "Secure" not in cookie
+    finally:
+        settings.app_env = "test"
+        app.dependency_overrides.clear()
+
+
+def test_session_cookie_is_secure_in_production() -> None:
+    generator = client_fixture()
+    client, _ = next(generator)
+    try:
+        settings.app_env = "production"
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "production@example.com", "password": "strong-pass"},
+        )
+        cookie = response.headers["set-cookie"]
+        assert "HttpOnly" in cookie
+        assert "SameSite=lax" in cookie
+        assert "Secure" in cookie
+        assert "Domain=" not in cookie
+    finally:
+        settings.app_env = "test"
         app.dependency_overrides.clear()
 
 

@@ -3,12 +3,24 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
+from app.core.config import settings
 from app.core.security import COOKIE_NAME, create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import AuthCredentials, AuthResponse, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def set_session_cookie(response: Response, user_id: int) -> None:
+    response.set_cookie(
+        COOKIE_NAME,
+        create_access_token(user_id),
+        httponly=True,
+        samesite="lax",
+        secure=settings.app_env == "production",
+        max_age=settings.jwt_expire_minutes * 60,
+    )
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
@@ -23,14 +35,7 @@ def signup(
     db.add(user)
     db.commit()
     db.refresh(user)
-    response.set_cookie(
-        COOKIE_NAME,
-        create_access_token(user.id),
-        httponly=True,
-        samesite="lax",
-        secure=False,
-        max_age=3600,
-    )
+    set_session_cookie(response, user.id)
     return {"user": user}
 
 
@@ -44,20 +49,18 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
-    response.set_cookie(
-        COOKIE_NAME,
-        create_access_token(user.id),
-        httponly=True,
-        samesite="lax",
-        secure=False,
-        max_age=3600,
-    )
+    set_session_cookie(response, user.id)
     return {"user": user}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def logout(response: Response) -> None:
-    response.delete_cookie(COOKIE_NAME)
+    response.delete_cookie(
+        COOKIE_NAME,
+        secure=settings.app_env == "production",
+        httponly=True,
+        samesite="lax",
+    )
 
 
 @router.get("/me", response_model=UserOut)
