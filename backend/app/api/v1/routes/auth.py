@@ -8,6 +8,11 @@ from app.core.security import COOKIE_NAME, create_access_token, hash_password, v
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import AuthCredentials, AuthResponse, UserOut
+from app.services.rate_limit import (
+    check_login_rate_limit,
+    check_signup_rate_limit,
+    rate_limiter,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -25,7 +30,10 @@ def set_session_cookie(response: Response, user_id: int) -> None:
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def signup(
-    payload: AuthCredentials, response: Response, db: Session = Depends(get_db)
+    payload: AuthCredentials,
+    response: Response,
+    _: None = Depends(check_signup_rate_limit),
+    db: Session = Depends(get_db),
 ) -> dict[str, User]:
     if db.scalar(select(User).where(User.email == payload.email.lower())) is not None:
         raise HTTPException(
@@ -41,7 +49,10 @@ def signup(
 
 @router.post("/login", response_model=AuthResponse)
 def login(
-    payload: AuthCredentials, response: Response, db: Session = Depends(get_db)
+    payload: AuthCredentials,
+    response: Response,
+    _: None = Depends(check_login_rate_limit),
+    db: Session = Depends(get_db),
 ) -> dict[str, User]:
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is None or not verify_password(payload.password, user.hashed_password):
@@ -49,6 +60,7 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
+    rate_limiter.reset(f"login:email:{payload.email.lower()}")
     set_session_cookie(response, user.id)
     return {"user": user}
 

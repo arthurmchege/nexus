@@ -10,9 +10,13 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.user import User
+from app.services import rate_limit
+from tests.test_rate_limit import FakeRedis
 
 
 def client_fixture() -> Generator[tuple[TestClient, sessionmaker[Session]], None, None]:
+    original_limiter = rate_limit.rate_limiter
+    rate_limit.rate_limiter = rate_limit.RedisRateLimiter(FakeRedis([0.0]))
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
@@ -30,6 +34,7 @@ def client_fixture() -> Generator[tuple[TestClient, sessionmaker[Session]], None
     with TestClient(app) as client:
         yield client, factory
     app.dependency_overrides.clear()
+    rate_limit.rate_limiter = original_limiter
 
 
 def test_signup_hashes_password_and_login_sets_cookie() -> None:
@@ -133,5 +138,55 @@ def test_missing_and_invalid_sessions_are_rejected() -> None:
         # must still be rejected by the real dependency.
         client.cookies.set("nexus_session", "invalid")
         assert client.get("/api/v1/monitors").status_code == 401
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_login_endpoint_returns_429_and_success_resets_email_counter(monkeypatch) -> None:
+    clock = [100.0]
+    limiter = rate_limit.RedisRateLimiter(FakeRedis(clock), clock=lambda: clock[0])
+    generator = client_fixture()
+    client, _ = next(generator)
+    monkeypatch.setattr(rate_limit, "rate_limiter", limiter)
+    try:
+        assert (
+            client.post(
+                "/api/v1/auth/signup",
+                json={"email": "limited@example.com", "password": "strong-pass"},
+            ).status_code
+            == 201
+        )
+        client.post("/api/v1/auth/logout")
+        for _ in range(5):
+            assert (
+                client.post(
+                    "/api/v1/auth/login",
+                    json={"email": "limited@example.com", "password": "wrong-pass"},
+                ).status_code
+                == 401
+            )
+        blocked = client.post(
+            "/api/v1/auth/login",
+            json={"email": "limited@example.com", "password": "strong-pass"},
+        )
+        assert blocked.status_code == 429
+        assert blocked.headers["retry-after"] == "800"
+
+        clock[0] = 1000.0
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "limited@example.com", "password": "strong-pass"},
+            ).status_code
+            == 200
+        )
+        client.post("/api/v1/auth/logout")
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "limited@example.com", "password": "wrong-pass"},
+            ).status_code
+            == 401
+        )
     finally:
         app.dependency_overrides.clear()
