@@ -25,7 +25,9 @@ Caddy is included in Compose as the production-facing reverse proxy. It
 routes `/api/*` to FastAPI and all other paths to Next.js. For deployment:
 
 1. Point DNS `A`/`AAAA` records for `NEXUS_DOMAIN` at the host.
-2. Set `NEXUS_DOMAIN` in `.env`.
+2. Set `NEXUS_DOMAIN` and `CADDY_SITE_ADDRESS` in `.env`; use the bare
+   domain for `CADDY_SITE_ADDRESS` in production and `http://localhost` for
+   local HTTP smoke tests.
 3. Set `APP_ENV=production` and `FRONTEND_ORIGIN=https://yourdomain.com`.
 4. Expose ports 80 and 443.
 5. Start with `docker compose up --build -d`.

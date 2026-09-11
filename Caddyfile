@@ -1,4 +1,4 @@
-{$NEXUS_DOMAIN:localhost} {
+{$CADDY_SITE_ADDRESS:http://localhost} {
     handle /api/* {
         reverse_proxy backend:8000 {
             header_up -X-Forwarded-For
