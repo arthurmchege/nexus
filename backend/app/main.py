@@ -1,3 +1,6 @@
+import time
+import uuid
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,6 +32,27 @@ app.include_router(api_router, prefix=settings.api_v1_str)
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"message": f"{settings.app_name} API is running"}
+
+
+@app.middleware("http")
+async def request_logging_middleware(request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    started = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - started) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "HTTP request completed",
+        extra={
+            "event": "http_request_completed",
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
 
 
 def run_database_migrations() -> None:
