@@ -33,9 +33,7 @@ def health_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
 
     recent_results = list(
         db.scalars(
-            select(MonitorResult)
-            .order_by(MonitorResult.observed_at.desc())
-            .limit(100)
+            select(MonitorResult).order_by(MonitorResult.observed_at.desc()).limit(100)
         ).all()
     )
     success_rate = (
@@ -48,9 +46,14 @@ def health_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
         "queue": {"depth": queue_depth},
         "monitors": {
             "active": db.scalar(
-                select(func.count()).select_from(MonitorEndpoint).where(MonitorEndpoint.active.is_(True))
+                select(func.count())
+                .select_from(MonitorEndpoint)
+                .where(MonitorEndpoint.active.is_(True))
             )
         },
         "worker": {"heartbeat": worker_heartbeat},
-        "checks": {"recent_success_rate_percentage": success_rate, "sample_size": len(recent_results)},
+        "checks": {
+            "recent_success_rate_percentage": success_rate,
+            "sample_size": len(recent_results),
+        },
     }
