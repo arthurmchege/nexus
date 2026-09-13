@@ -242,3 +242,37 @@ def test_password_reset_is_generic_and_changes_password(monkeypatch) -> None:
             )
     finally:
         app.dependency_overrides.clear()
+
+
+def test_demo_users_are_read_only_but_can_read_owned_data() -> None:
+    generator = client_fixture()
+    client, factory = next(generator)
+    try:
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "demo-test@example.com", "password": "strong-pass"},
+        )
+        assert signup.status_code == 201
+        with factory() as db:
+            user = db.query(User).filter(User.email == "demo-test@example.com").one()
+            user.is_demo = True
+            db.commit()
+
+        client.post("/api/v1/auth/logout")
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "demo-test@example.com", "password": "strong-pass"},
+        )
+        assert login.status_code == 200
+        assert client.get("/api/v1/monitors").status_code == 200
+        payload = {
+            "url": "http://127.0.0.1:8000/health",
+            "http_method": "GET",
+            "expected_status_code": 200,
+            "interval_seconds": 30,
+            "timeout_seconds": 5,
+            "active": True,
+        }
+        assert client.post("/api/v1/monitors", json=payload).status_code == 403
+    finally:
+        app.dependency_overrides.clear()

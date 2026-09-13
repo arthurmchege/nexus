@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_writable_user
 from app.db.session import get_db
 from app.models.monitoring import MonitorEndpoint, MonitorResult
 from app.models.user import User
@@ -62,7 +62,7 @@ def get_monitor_status(db: Session, monitor_id: int) -> str:
 def create_monitor(
     payload: MonitorEndpointCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> MonitorEndpoint:
     endpoint = MonitorEndpoint(
         url=payload.url,
@@ -154,7 +154,7 @@ def update_monitor(
     monitor_id: int,
     payload: MonitorEndpointUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> MonitorEndpoint:
     endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     update_data = payload.model_dump(exclude_unset=True)
@@ -170,7 +170,7 @@ def update_monitor(
 def activate_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> MonitorEndpoint:
     endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     endpoint.active = True
@@ -184,7 +184,7 @@ def activate_monitor(
 def deactivate_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> MonitorEndpoint:
     endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     endpoint.active = False
@@ -198,7 +198,7 @@ def deactivate_monitor(
 def delete_monitor(
     monitor_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> Response:
     endpoint = get_owned_monitor_or_404(db, monitor_id, user)
     db.delete(endpoint)
@@ -283,7 +283,7 @@ async def write_monitor_result(
     monitor_id: int,
     payload: MonitorResultCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_writable_user),
 ) -> MonitorResult:
     get_owned_monitor_or_404(db, monitor_id, user)
     result, _ = await write_monitoring_result(

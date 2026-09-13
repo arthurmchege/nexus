@@ -12,6 +12,7 @@ class UserOut(BaseModel):
     id: int
     email: str
     created_at: datetime
+    is_demo: bool = False
 
 
 class AuthResponse(BaseModel):

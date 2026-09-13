@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -22,5 +22,6 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 
     monitors: Mapped[list[MonitorEndpoint]] = relationship(back_populates="owner")

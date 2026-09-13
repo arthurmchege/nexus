@@ -75,6 +75,18 @@ def login(
     return {"user": user}
 
 
+@router.post("/demo-login", response_model=AuthResponse)
+def demo_login(response: Response, db: Session = Depends(get_db)) -> dict[str, User]:
+    user = db.scalar(select(User).where(User.is_demo.is_(True)))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Demo mode is not available.",
+        )
+    set_session_cookie(response, user.id)
+    return {"user": user}
+
+
 @router.post("/request-password-reset")
 def request_password_reset(
     payload: PasswordResetRequest,

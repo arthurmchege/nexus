@@ -47,3 +47,12 @@ def get_current_user(
                 detail="Invalid or expired session.",
             )
     return user
+
+
+def require_writable_user(user: User = Depends(get_current_user)) -> User:
+    if user.is_demo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Demo accounts are read-only.",
+        )
+    return user
