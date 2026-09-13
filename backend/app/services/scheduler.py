@@ -8,8 +8,8 @@ from typing import Any, Callable
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.models.monitoring import MonitorEndpoint
 from app.core.logging import logger
+from app.models.monitoring import MonitorEndpoint
 
 
 @dataclass(slots=True)

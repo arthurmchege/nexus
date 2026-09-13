@@ -6,8 +6,8 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.monitoring import Incident, MonitorEndpoint
 from app.core.logging import logger
+from app.models.monitoring import Incident, MonitorEndpoint
 
 
 @dataclass(frozen=True, slots=True)

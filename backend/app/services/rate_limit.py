@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import time
 import hashlib
+import time
 from dataclasses import dataclass
 from ipaddress import ip_address, ip_network
 from typing import Any, Callable
@@ -10,8 +10,8 @@ import redis
 from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
-from app.core.redis_client import redis_client
 from app.core.logging import logger
+from app.core.redis_client import redis_client
 from app.schemas.auth import AuthCredentials, PasswordResetRequest
 
 

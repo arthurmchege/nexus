@@ -10,8 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.monitoring import AlertDelivery, Incident
 from app.core.logging import logger
+from app.models.monitoring import AlertDelivery, Incident
 
 
 class NotificationChannel(Protocol):

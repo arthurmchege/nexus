@@ -4,8 +4,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.models.monitoring import MonitorEndpoint, MonitorResult
 from app.core.logging import logger
+from app.models.monitoring import MonitorEndpoint, MonitorResult
 from app.services.incident_state import StateTransition, evaluate_monitor_state
 from app.services.monitoring import MonitoringCheckResult
 from app.services.notifications import NotificationChannel, WebhookChannel, dispatch_alert
