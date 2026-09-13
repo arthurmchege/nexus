@@ -19,9 +19,10 @@ def test_root_endpoint() -> None:
 
 
 def test_live_health_endpoint() -> None:
-    response = client.get("/api/v1/health/live")
+    response = client.get("/api/v1/health/live", headers={"X-Request-ID": "test-request-id"})
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert response.headers["X-Request-ID"] == "test-request-id"
 
 
 def test_ready_health_endpoint() -> None:
