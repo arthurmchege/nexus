@@ -33,6 +33,14 @@ type MonitorRecord = {
   status?: string;
 };
 
+type HealthMetrics = {
+  redis: { ok: boolean };
+  queue: { depth: number };
+  monitors: { active: number };
+  worker: { heartbeat: boolean };
+  checks: { recent_success_rate_percentage: number | null; sample_size: number };
+};
+
 function formatWindowRange(start: string, end: string) {
   const format = (value: string) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return `${format(start)} → ${format(end)}`;
@@ -41,6 +49,7 @@ function formatWindowRange(start: string, end: string) {
 export default function HomePage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [monitors, setMonitors] = useState<MonitorRecord[]>([]);
+  const [health, setHealth] = useState<HealthMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,20 +59,23 @@ export default function HomePage() {
         setLoading(true);
         setError(null);
 
-        const [summaryRes, monitorsRes] = await Promise.all([
+        const [summaryRes, monitorsRes, healthRes] = await Promise.all([
           apiFetch('/api/v1/monitors/summary'),
           apiFetch('/api/v1/monitors?skip=0&limit=5'),
+          apiFetch('/api/v1/health/metrics'),
         ]);
 
-        if (!summaryRes.ok || !monitorsRes.ok) {
+        if (!summaryRes.ok || !monitorsRes.ok || !healthRes.ok) {
           throw new Error('The API is unavailable right now.');
         }
 
         const summaryData = (await summaryRes.json()) as DashboardSummary;
         const monitoringData = (await monitorsRes.json()) as MonitorRecord[];
+        const healthData = (await healthRes.json()) as HealthMetrics;
 
         setSummary(summaryData);
         setMonitors(monitoringData);
+        setHealth(healthData);
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : 'Unknown error');
       } finally {
@@ -131,6 +143,41 @@ export default function HomePage() {
           </Card>
         ))}
       </section>
+
+      {health && (
+        <Card className="border-slate-800 bg-slate-900/70 panel-glow">
+          <CardHeader>
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">System health</p>
+            <CardTitle className="mt-2 text-xl text-white">NEXUS runtime signals</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-sm text-slate-400">Redis</p>
+              <p className={`mt-1 font-semibold ${health.redis.ok ? 'text-emerald-300' : 'text-red-400'}`}>
+                {health.redis.ok ? 'Connected' : 'Unavailable'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Queue depth</p>
+              <p className="mt-1 font-semibold text-white">{health.queue.depth}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Worker</p>
+              <p className={`mt-1 font-semibold ${health.worker.heartbeat ? 'text-emerald-300' : 'text-amber-300'}`}>
+                {health.worker.heartbeat ? 'Online' : 'Waiting'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Recent check success</p>
+              <p className="mt-1 font-semibold text-white">
+                {health.checks.recent_success_rate_percentage === null
+                  ? 'No checks yet'
+                  : `${health.checks.recent_success_rate_percentage.toFixed(2)}%`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-slate-800 bg-slate-900/70 panel-glow">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
