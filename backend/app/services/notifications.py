@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.monitoring import AlertDelivery, Incident
+from app.core.logging import logger
 
 
 class NotificationChannel(Protocol):
@@ -98,17 +99,44 @@ async def dispatch_alert(
     }
     for attempt in range(delivery.attempts + 1, max_attempts + 1):
         delivery.attempts = attempt
+        logger.info(
+            "Alert delivery attempt",
+            extra={
+                "event": "alert_delivery_attempt",
+                "incident_id": incident.id,
+                "incident_event": event,
+                "attempt": attempt,
+            },
+        )
         try:
             await channel.send(payload)
         except Exception as exc:
             delivery.last_error = str(exc)
             delivery.status = "failed" if attempt == max_attempts else "pending"
+            logger.warning(
+                "Alert delivery failed",
+                extra={
+                    "event": "alert_delivery_failed",
+                    "incident_id": incident.id,
+                    "incident_event": event,
+                    "attempt": attempt,
+                },
+            )
             if attempt < max_attempts:
                 await asyncio.sleep(backoff_seconds * (2 ** (attempt - 1)))
             continue
         delivery.status = "delivered"
         delivery.delivered_at = datetime.utcnow()
         delivery.last_error = None
+        logger.info(
+            "Alert delivered",
+            extra={
+                "event": "alert_delivery_succeeded",
+                "incident_id": incident.id,
+                "incident_event": event,
+                "attempt": attempt,
+            },
+        )
         break
 
     session.commit()

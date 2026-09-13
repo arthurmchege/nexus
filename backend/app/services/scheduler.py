@@ -9,6 +9,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.models.monitoring import MonitorEndpoint
+from app.core.logging import logger
 
 
 @dataclass(slots=True)
@@ -117,6 +118,11 @@ class MonitorScheduler:
             for job in claimed:
                 self.queue.enqueue(job)
 
+        if claimed:
+            logger.info(
+                "Monitor jobs claimed",
+                extra={"event": "monitor_jobs_claimed", "count": len(claimed)},
+            )
         return claimed
 
 
