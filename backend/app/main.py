@@ -37,6 +37,7 @@ def read_root() -> dict[str, str]:
 @app.middleware("http")
 async def request_logging_middleware(request, call_next):
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    request.state.request_id = request_id
     started = time.perf_counter()
     response = await call_next(request)
     duration_ms = round((time.perf_counter() - started) * 1000, 2)
