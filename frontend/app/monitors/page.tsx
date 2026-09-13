@@ -37,6 +37,7 @@ export default function MonitorListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionId, setActionId] = useState<number | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     const fetchMonitors = async () => {
@@ -44,13 +45,17 @@ export default function MonitorListPage() {
         setLoading(true);
         setError(null);
 
-        const response = await apiFetch(`/api/v1/monitors?skip=${skip}&limit=${limit}`);
+        const [response, userResponse] = await Promise.all([
+          apiFetch(`/api/v1/monitors?skip=${skip}&limit=${limit}`),
+          apiFetch('/api/v1/auth/me'),
+        ]);
         if (!response.ok) {
           throw new Error('The monitor list is unavailable right now.');
         }
 
         const payload = (await response.json()) as MonitorRecord[];
         setMonitors(payload);
+        if (userResponse.ok) setIsDemo(((await userResponse.json()) as { is_demo?: boolean }).is_demo === true);
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : 'Unknown error');
       } finally {
@@ -122,10 +127,10 @@ export default function MonitorListPage() {
           <h2 className="mt-2 text-3xl font-semibold text-white">Endpoint inventory</h2>
         </div>
         <div className="flex gap-2">
-          <Button className="gap-2 bg-cyan-500 text-slate-950 hover:bg-cyan-400" onClick={() => setShowCreate(true)}>
+          {!isDemo ? <Button className="gap-2 bg-cyan-500 text-slate-950 hover:bg-cyan-400" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" />
             Add monitor
-          </Button>
+          </Button> : <span className="rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-200">Demo data is read-only</span>}
           <Button variant="outline" className="gap-2 border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800" onClick={() => setSkip(0)}>
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -156,7 +161,7 @@ export default function MonitorListPage() {
             <EmptyState
               title="No monitors detected"
               description="Create your first endpoint to start collecting health, latency, and incident data."
-              action={<Button className="bg-cyan-500 text-slate-950 hover:bg-cyan-400" onClick={() => setShowCreate(true)}>Add your first monitor</Button>}
+              action={!isDemo ? <Button className="bg-cyan-500 text-slate-950 hover:bg-cyan-400" onClick={() => setShowCreate(true)}>Add your first monitor</Button> : undefined}
             />
           ) : (
             <Table>
@@ -203,7 +208,7 @@ export default function MonitorListPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Button
+                        {!isDemo ? <Button
                           variant="ghost"
                           size="sm"
                           disabled={actionId === monitor.id}
@@ -212,10 +217,10 @@ export default function MonitorListPage() {
                         >
                           {monitor.active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                           {monitor.active ? 'Pause' : 'Resume'}
-                        </Button>
-                        <Button variant="ghost" size="icon" disabled={actionId === monitor.id} onClick={() => void deleteMonitor(monitor)} aria-label={`Delete ${monitor.url}`} className="text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                        </Button> : null}
+                        {!isDemo ? <Button variant="ghost" size="icon" disabled={actionId === monitor.id} onClick={() => void deleteMonitor(monitor)} aria-label={`Delete ${monitor.url}`} className="text-red-400 hover:bg-red-500/10 hover:text-red-300">
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </Button> : null}
                         <Link href={`/monitors/${monitor.id}`} className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200">
                           View
                           <ArrowRight className="h-4 w-4" />

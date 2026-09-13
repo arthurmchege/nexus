@@ -18,7 +18,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; is_demo: boolean } | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(!isAuthPage);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         router.replace('/login');
         return;
       }
-      setUser((await response.json()) as { email: string });
+      setUser((await response.json()) as { email: string; is_demo: boolean });
       setCheckingAuth(false);
     });
   }, [isAuthPage, router]);
@@ -107,6 +107,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2 text-sm text-slate-300">
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
                 {user?.email}
+                {user?.is_demo ? <span className="rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-xs text-violet-200">Read-only demo</span> : null}
                 <button onClick={() => void logout()} className="text-cyan-300 hover:text-cyan-200">Sign out</button>
               </div>
             </div>

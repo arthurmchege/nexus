@@ -96,6 +96,7 @@ export default function MonitorDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     if (!Number.isFinite(monitorId)) {
@@ -109,10 +110,11 @@ export default function MonitorDetailPage() {
         setLoading(true);
         setError(null);
 
-        const [monitorRes, statsRes, historyRes] = await Promise.all([
+        const [monitorRes, statsRes, historyRes, userRes] = await Promise.all([
           apiFetch(`/api/v1/monitors/${monitorId}`),
           apiFetch(`/api/v1/monitors/${monitorId}/stats?window_days=30`),
           apiFetch(`/api/v1/monitors/${monitorId}/history?skip=${historySkip}&limit=${limit}`),
+          apiFetch('/api/v1/auth/me'),
         ]);
 
         if (!monitorRes.ok || !statsRes.ok || !historyRes.ok) {
@@ -126,6 +128,7 @@ export default function MonitorDetailPage() {
         setMonitor(monitorData);
         setStats(statsData);
         setHistory(historyData);
+        if (userRes.ok) setIsDemo(((await userRes.json()) as { is_demo?: boolean }).is_demo === true);
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : 'Unknown error');
       } finally {
@@ -237,18 +240,18 @@ export default function MonitorDetailPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={monitor.status ?? 'unknown'} />
-            <Button variant="outline" disabled={actionLoading} onClick={() => void toggleMonitor()} className="gap-2 border-slate-700 text-slate-200">
+            {!isDemo ? <Button variant="outline" disabled={actionLoading} onClick={() => void toggleMonitor()} className="gap-2 border-slate-700 text-slate-200">
               {monitor.active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               {monitor.active ? 'Pause' : 'Resume'}
-            </Button>
-            <Button variant="outline" disabled={actionLoading} onClick={() => setShowEdit(true)} className="gap-2 border-slate-700 text-slate-200">
+            </Button> : null}
+            {!isDemo ? <Button variant="outline" disabled={actionLoading} onClick={() => setShowEdit(true)} className="gap-2 border-slate-700 text-slate-200">
               <Pencil className="h-4 w-4" />
               Edit
-            </Button>
-            <Button variant="outline" disabled={actionLoading} onClick={() => void deleteMonitor()} className="gap-2 border-red-500/30 text-red-300 hover:bg-red-500/10">
+            </Button> : null}
+            {!isDemo ? <Button variant="outline" disabled={actionLoading} onClick={() => void deleteMonitor()} className="gap-2 border-red-500/30 text-red-300 hover:bg-red-500/10">
               <Trash2 className="h-4 w-4" />
               Delete
-            </Button>
+            </Button> : <span className="rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-200">Read-only demo</span>}
           </div>
         </CardHeader>
       </Card>
