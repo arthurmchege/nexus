@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.monitoring import Incident, MonitorEndpoint
+from app.core.logging import logger
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,13 +55,19 @@ def evaluate_monitor_state(
             if incident is not None:
                 incident.status = "resolved"
                 incident.resolved_at = observed_at
-            return StateTransition(
+            transition = StateTransition(
                 monitor_id=monitor_id,
                 previous_state=previous_state,
                 current_state=endpoint.health_state,
                 incident=incident,
                 event="resolved" if incident is not None else None,
             )
+            if transition.event:
+                logger.info(
+                    "Monitor incident resolved",
+                    extra={"event": "incident_resolved", "monitor_id": monitor_id},
+                )
+            return transition
     else:
         endpoint.consecutive_failures += 1
         endpoint.consecutive_successes = 0
@@ -79,13 +86,18 @@ def evaluate_monitor_state(
                 status="open",
             )
             session.add(incident)
-            return StateTransition(
+            transition = StateTransition(
                 monitor_id=monitor_id,
                 previous_state=previous_state,
                 current_state=endpoint.health_state,
                 incident=incident,
                 event="opened",
             )
+            logger.warning(
+                "Monitor incident opened",
+                extra={"event": "incident_opened", "monitor_id": monitor_id},
+            )
+            return transition
 
     return StateTransition(
         monitor_id=monitor_id,

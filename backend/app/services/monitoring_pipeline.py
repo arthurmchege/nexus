@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.services.monitoring import MonitoringCheckResult, MonitoringWorker, MonitorJob
 from app.services.notifications import NotificationChannel
 from app.services.redis_queue import MonitoringQueue
@@ -57,6 +58,16 @@ async def process_queued_monitoring_job(
     )
     try:
         result = await worker.run_job(job)
+        logger.info(
+            "Monitor check completed",
+            extra={
+                "event": "monitor_check_completed",
+                "monitor_id": job.endpoint_id,
+                "success": result.success,
+                "latency_ms": result.latency_ms,
+                "http_status": result.http_status,
+            },
+        )
         with session_factory() as session:
             await write_monitoring_result(
                 session,
@@ -67,6 +78,10 @@ async def process_queued_monitoring_job(
         queue.mark_processed(str(payload["job_id"]))
         return result
     except Exception as exc:
+        logger.exception(
+            "Monitor check processing failed",
+            extra={"event": "monitor_check_failed", "monitor_id": job.endpoint_id},
+        )
         queue.mark_failed(str(payload["job_id"]), error=str(exc))
         raise
 

@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.monitoring import MonitorEndpoint, MonitorResult
+from app.core.logging import logger
 from app.services.incident_state import StateTransition, evaluate_monitor_state
 from app.services.monitoring import MonitoringCheckResult
 from app.services.notifications import NotificationChannel, WebhookChannel, dispatch_alert
@@ -49,6 +50,15 @@ async def write_monitoring_result(
     session.commit()
 
     if transition.event and transition.incident is not None:
+        logger.info(
+            "Alert dispatch requested",
+            extra={
+                "event": "alert_dispatch_requested",
+                "monitor_id": monitor_id,
+                "incident_id": transition.incident.id,
+                "incident_event": transition.event,
+            },
+        )
         delivery_channel = channel
         if delivery_channel is None and endpoint.notification_webhook_url:
             delivery_channel = WebhookChannel(endpoint.notification_webhook_url)
