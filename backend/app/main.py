@@ -58,13 +58,19 @@ async def request_logging_middleware(request, call_next):
 
 def run_database_migrations() -> None:
     if settings.app_env in {"production", "test"}:
+        logger.info(
+            "Database migrations skipped",
+            extra={"event": "database_migrations_skipped", "environment": settings.app_env},
+        )
         return
 
+    logger.info("Database migrations starting", extra={"event": "database_migrations_started"})
     alembic_cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations completed", extra={"event": "database_migrations_completed"})
 
 
 @app.on_event("startup")
 def startup_event() -> None:
     run_database_migrations()
-    logger.info("NEXUS backend startup complete")
+    logger.info("NEXUS backend startup complete", extra={"event": "backend_startup_complete"})

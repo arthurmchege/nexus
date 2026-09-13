@@ -33,6 +33,7 @@ class JsonFormatter(logging.Formatter):
             "retry_after",
             "email_domain",
             "rate_limit_key",
+            "environment",
         ):
             value = getattr(record, key, None)
             if value is not None:
