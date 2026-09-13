@@ -22,17 +22,20 @@ async def run_monitoring_worker() -> None:
     logger.info("NEXUS monitoring worker started")
 
     while True:
-    try:
-        redis_client.set("nexus:worker:heartbeat", "ok", ex=30)
-    except redis.RedisError:
-        logger.warning("Worker heartbeat could not be written", extra={"event": "worker_heartbeat_failed"})
-    logger.debug("Monitoring worker heartbeat", extra={"event": "worker_heartbeat"})
-    claimed = await asyncio.to_thread(scheduler.claim_due_monitors)
-    if claimed:
-        logger.info(
-            "Queued due monitor checks",
-            extra={"event": "monitor_jobs_queued", "count": len(claimed)},
-        )
+        try:
+            redis_client.set("nexus:worker:heartbeat", "ok", ex=30)
+        except redis.RedisError:
+            logger.warning(
+                "Worker heartbeat could not be written",
+                extra={"event": "worker_heartbeat_failed"},
+            )
+        logger.debug("Monitoring worker heartbeat", extra={"event": "worker_heartbeat"})
+        claimed = await asyncio.to_thread(scheduler.claim_due_monitors)
+        if claimed:
+            logger.info(
+                "Queued due monitor checks",
+                extra={"event": "monitor_jobs_queued", "count": len(claimed)},
+            )
 
         result = await process_queued_monitoring_job(
             queue,
