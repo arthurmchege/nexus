@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.core.config import settings
 from app.core.security import COOKIE_NAME, create_access_token, hash_password, verify_password
+from app.core.logging import logger
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -54,6 +55,7 @@ def signup(
     db.commit()
     db.refresh(user)
     set_session_cookie(response, user.id)
+    logger.info("User signup succeeded", extra={"event": "auth_signup_success", "user_id": user.id})
     return {"user": user}
 
 
@@ -66,12 +68,17 @@ def login(
 ) -> dict[str, User]:
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is None or not verify_password(payload.password, user.hashed_password):
+        logger.warning(
+            "User login failed",
+            extra={"event": "auth_login_failure", "email_domain": payload.email.rsplit("@", 1)[-1]},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
     rate_limiter.reset(f"login:email:{payload.email.lower()}")
     set_session_cookie(response, user.id)
+    logger.info("User login succeeded", extra={"event": "auth_login_success", "user_id": user.id})
     return {"user": user}
 
 

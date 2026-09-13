@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import hashlib
 from dataclasses import dataclass
 from ipaddress import ip_address, ip_network
 from typing import Any, Callable
@@ -10,6 +11,7 @@ from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
 from app.core.redis_client import redis_client
+from app.core.logging import logger
 from app.schemas.auth import AuthCredentials, PasswordResetRequest
 
 
@@ -48,6 +50,14 @@ class RedisRateLimiter:
 
         if count > limit.requests:
             retry_after = max(1, window_start + limit.window_seconds - now)
+            logger.warning(
+                "Authentication rate limit exceeded",
+                extra={
+                    "event": "auth_rate_limit_exceeded",
+                    "rate_limit_key": hashlib.sha256(key.encode()).hexdigest()[:16],
+                    "retry_after": retry_after,
+                },
+            )
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many authentication attempts. Please try again later.",
