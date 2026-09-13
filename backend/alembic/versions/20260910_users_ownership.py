@@ -47,13 +47,12 @@ def upgrade() -> None:
     )
     with op.batch_alter_table("monitor_endpoints") as batch_op:
         batch_op.alter_column("owner_id", nullable=False)
-    op.create_foreign_key(
-        "fk_monitor_endpoints_owner_id_users",
-        "monitor_endpoints",
-        "users",
-        ["owner_id"],
-        ["id"],
-    )
+        batch_op.create_foreign_key(
+            "fk_monitor_endpoints_owner_id_users",
+            "users",
+            ["owner_id"],
+            ["id"],
+        )
     op.create_index(
         "ix_monitor_endpoints_owner_id", "monitor_endpoints", ["owner_id"], unique=False
     )
@@ -61,10 +60,9 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_monitor_endpoints_owner_id", table_name="monitor_endpoints")
-    op.drop_constraint(
-        "fk_monitor_endpoints_owner_id_users", "monitor_endpoints", type_="foreignkey"
-    )
-    op.drop_column("monitor_endpoints", "owner_id")
+    with op.batch_alter_table("monitor_endpoints") as batch_op:
+        batch_op.drop_constraint("fk_monitor_endpoints_owner_id_users", type_="foreignkey")
+        batch_op.drop_column("owner_id")
     op.drop_index("ix_users_email", table_name="users")
     op.drop_index("ix_users_id", table_name="users")
     op.drop_table("users")

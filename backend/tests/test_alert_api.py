@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -34,6 +35,11 @@ def api_client() -> Generator[TestClient, None, None]:
 def test_failed_results_create_alert_and_recovery_resolves_it(
     api_client: TestClient,
 ) -> None:
+    signup = api_client.post(
+        "/api/v1/auth/signup",
+        json={"email": f"alerts-{uuid4()}@example.com", "password": "strong-pass"},
+    )
+    assert signup.status_code == 201
     created = api_client.post(
         "/api/v1/monitors",
         json={
@@ -42,7 +48,7 @@ def test_failed_results_create_alert_and_recovery_resolves_it(
             "recovery_threshold": 2,
         },
     )
-    assert created.status_code == 201
+    assert created.status_code == 201, created.text
     monitor_id = created.json()["id"]
     failed_payload = {
         "http_status": 503,
