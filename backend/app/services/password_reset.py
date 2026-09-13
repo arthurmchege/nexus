@@ -25,12 +25,10 @@ def create_reset_token(user_id: int, client: Any = redis_client) -> str:
     except redis.RedisError:
         raise
     if settings.app_env == "development":
-        message = (
-            f"Development password reset link for user {user_id}: "
-            f"{settings.password_reset_frontend_url}?token={token}"
+        logger.info(
+            "Development password reset link generated",
+            extra={"event": "password_reset_link_generated", "user_id": user_id},
         )
-        logger.info(message)
-        print(message, flush=True)
     return token
 
 

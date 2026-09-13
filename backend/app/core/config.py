@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         alias="APP_ENV",
     )
     debug: bool = Field(default=False, alias="DEBUG")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     api_v1_str: str = Field(default="/api/v1", alias="API_V1_STR")
     port: int = Field(default=8000, alias="PORT")
     database_url_override: str | None = Field(default=None, alias="DATABASE_URL")
